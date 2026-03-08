@@ -92,8 +92,8 @@ def upload_after_photo(issue_id):
         if os.path.exists(before_path):
             comparison = ai_service.compare_images(before_path, filepath)
             if comparison.get('verified'):
-                issue.status = 'Resolved'
-                issue.progress = 100
+                issue.status = 'Pending Verification'
+                issue.progress = 90
 
     db.session.commit()
 

@@ -188,23 +188,20 @@ def analyze_photo_metadata(filepath):
     result = {'gps': None, 'ocr_text': '', 'dimensions': None, 'format': None}
     try:
         from PIL import Image
-        from PIL.ExifTags import TAGS, GPSTAGS
+        from PIL.ExifTags import GPSTAGS
+        GPS_IFD_TAG = 0x8825  # Well-known tag ID for GPSInfo
         img = Image.open(filepath)
         result['dimensions'] = img.size
         result['format'] = img.format
-        exif_data = img._getexif()
+        exif_data = img.getexif()
         if exif_data:
-            for tag_id, value in exif_data.items():
-                tag = TAGS.get(tag_id, tag_id)
-                if tag == 'GPSInfo':
-                    gps = {}
-                    for gps_tag_id, gps_value in value.items():
-                        gps_tag = GPSTAGS.get(gps_tag_id, gps_tag_id)
-                        gps[gps_tag] = gps_value
-                    if 'GPSLatitude' in gps and 'GPSLongitude' in gps:
-                        lat = _dms_to_decimal(gps['GPSLatitude'], gps.get('GPSLatitudeRef', 'N'))
-                        lng = _dms_to_decimal(gps['GPSLongitude'], gps.get('GPSLongitudeRef', 'E'))
-                        result['gps'] = {'lat': lat, 'lng': lng}
+            gps_ifd = exif_data.get_ifd(GPS_IFD_TAG)
+            if gps_ifd:
+                gps = {GPSTAGS.get(k, k): v for k, v in gps_ifd.items()}
+                if 'GPSLatitude' in gps and 'GPSLongitude' in gps:
+                    lat = _dms_to_decimal(gps['GPSLatitude'], gps.get('GPSLatitudeRef', 'N'))
+                    lng = _dms_to_decimal(gps['GPSLongitude'], gps.get('GPSLongitudeRef', 'E'))
+                    result['gps'] = {'lat': lat, 'lng': lng}
     except Exception as e:
         logger.warning("EXIF extraction error: %s", e)
     try:

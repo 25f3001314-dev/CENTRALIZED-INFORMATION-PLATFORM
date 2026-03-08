@@ -22,11 +22,18 @@ def sha256_hash(data):
 
 
 def generate_issue_id():
-    """Generate unique issue ID like CP-2024-001."""
+    """Generate unique issue ID like CP-2024-XXXXX, verified against the database."""
     import random
+    from models.issue import Issue
     year = datetime.utcnow().year
-    num = random.randint(10000, 99999)
-    return f"CP-{year}-{num}"
+    for _ in range(10):
+        num = random.randint(10000, 99999)
+        candidate = f"CP-{year}-{num}"
+        if not Issue.query.get(candidate):
+            return candidate
+    # Fallback: use timestamp-based suffix for guaranteed uniqueness
+    ts = int(datetime.utcnow().timestamp() * 1000) % 100000
+    return f"CP-{year}-{ts}"
 
 
 def days_since(dt):

@@ -55,6 +55,7 @@ def add_block(issue_id, action, data, app=None):
         timestamp = datetime.utcnow().isoformat()
         data_str = json.dumps(data, sort_keys=True) if isinstance(data, dict) else str(data)
         nonce, block_hash = proof_of_work(block_index, timestamp, data_str, prev_hash)
+        block_timestamp = datetime.fromisoformat(timestamp)
 
         record = BlockchainRecord(
             issue_id=issue_id,
@@ -63,7 +64,7 @@ def add_block(issue_id, action, data, app=None):
             prev_hash=prev_hash,
             nonce=nonce,
             block_index=block_index,
-            timestamp=datetime.utcnow()
+            timestamp=block_timestamp
         )
         db.session.add(record)
         db.session.commit()

@@ -12,43 +12,57 @@ SLA_HOURS = {
 
 
 def check_and_escalate(app):
-    """Check all open issues and escalate if SLA breached."""
+    """Check all open issues and escalate if SLA breached. Processes in batches to avoid large memory usage."""
     with app.app_context():
         from models.issue import Issue
         from models.escalation import EscalationLog
         from models import db
 
         now = datetime.utcnow()
-        open_issues = Issue.query.filter(Issue.status.notin_(['Resolved', 'Closed'])).all()
         escalated_count = 0
+        batch_size = 100
+        offset = 0
 
-        for issue in open_issues:
-            if not issue.created_at:
-                continue
-            sla_hours = SLA_HOURS.get(issue.priority, 120)
-            deadline = issue.created_at + timedelta(hours=sla_hours)
+        while True:
+            open_issues = (Issue.query
+                           .filter(Issue.status.notin_(['Resolved', 'Closed']))
+                           .offset(offset)
+                           .limit(batch_size)
+                           .all())
+            if not open_issues:
+                break
 
-            if now > deadline and not issue.escalated:
-                original_priority = issue.priority
-                issue.escalated = True
-                issue.priority = 'Urgent'
-                issue.updated_at = now
+            for issue in open_issues:
+                if not issue.created_at:
+                    continue
+                sla_hours = SLA_HOURS.get(issue.priority, 120)
+                deadline = issue.created_at + timedelta(hours=sla_hours)
 
-                log = EscalationLog(
-                    issue_id=issue.id,
-                    reason=f"SLA breached: {sla_hours}h exceeded for priority {original_priority}",
-                    escalated_to='Senior Nodal Officer',
-                    triggered_at=now
-                )
-                db.session.add(log)
-                escalated_count += 1
+                if now > deadline and not issue.escalated:
+                    original_priority = issue.priority
+                    issue.escalated = True
+                    issue.priority = 'Urgent'
+                    issue.updated_at = now
 
-                logger.info("[ESCALATION] Issue %s escalated to Urgent (SLA %dh breached, was %s)",
-                            issue.id, sla_hours, original_priority)
-                _send_escalation_notification(issue)
+                    log = EscalationLog(
+                        issue_id=issue.id,
+                        reason=f"SLA breached: {sla_hours}h exceeded for priority {original_priority}",
+                        escalated_to='Senior Nodal Officer',
+                        triggered_at=now
+                    )
+                    db.session.add(log)
+                    escalated_count += 1
+
+                    logger.info("[ESCALATION] Issue %s escalated to Urgent (SLA %dh breached, was %s)",
+                                issue.id, sla_hours, original_priority)
+                    _send_escalation_notification(issue)
+
+            db.session.commit()
+            offset += batch_size
+            if len(open_issues) < batch_size:
+                break
 
         if escalated_count > 0:
-            db.session.commit()
             logger.info("Escalation run complete: %d issues escalated", escalated_count)
 
 
