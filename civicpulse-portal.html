@@ -1845,6 +1845,30 @@ document.addEventListener('keydown', e => {
 document.getElementById('lightbox').addEventListener('click', function(e) {
   if (e.target === this) closeLightbox();
 });
+
+// Backend detection: if the Flask API is running, load live data
+(function detectBackend() {
+  fetch('/api/health')
+    .then(res => res.ok ? res.json() : Promise.reject())
+    .then(() => {
+      return fetch('/api/issues');
+    })
+    .then(res => res.json())
+    .then(response => {
+      if (response.status === 'success' && Array.isArray(response.data)) {
+        // Replace the ISSUES array with live API data
+        ISSUES.length = 0;
+        response.data.forEach(issue => ISSUES.push(issue));
+        // Re-render the issues table
+        if (typeof renderTable === 'function') renderTable();
+        if (typeof updateStats === 'function') updateStats();
+        console.log('[CivicPulse] Loaded ' + ISSUES.length + ' issues from backend API');
+      }
+    })
+    .catch(() => {
+      console.log('[CivicPulse] Backend API not available, using demo data');
+    });
+})();
 </script>
 </body>
 </html>
