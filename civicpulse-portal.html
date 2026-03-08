@@ -1,0 +1,1850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CivicPulse — Centralized Public Issue Redress System</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --saffron: #FF6200;
+  --saffron-light: #FFF3EB;
+  --saffron-mid: #FF8534;
+  --navy: #003366;
+  --navy-dark: #001f45;
+  --navy-light: #EEF3FA;
+  --green: #128807;
+  --green-light: #E8F5E9;
+  --white: #ffffff;
+  --gray-50: #F8F9FA;
+  --gray-100: #F0F2F5;
+  --gray-200: #E2E6EA;
+  --gray-400: #9EA7B0;
+  --gray-600: #5A6472;
+  --gray-800: #2D3748;
+  --text: #1a2332;
+  --border: #D0D7DE;
+  --amber: #E07B00;
+  --red: #C0392B;
+  --blue: #1565C0;
+  --teal: #007A7A;
+  --shadow: 0 2px 8px rgba(0,0,0,0.10);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: var(--gray-100);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── GOV TOP BAR ─────────────────────── */
+.gov-topbar {
+  background: var(--navy-dark);
+  color: rgba(255,255,255,0.85);
+  font-size: 11.5px;
+  padding: 5px 0;
+  border-bottom: 3px solid var(--saffron);
+}
+.gov-topbar-inner {
+  max-width: 1280px; margin: 0 auto; padding: 0 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.gov-emblem { display: flex; align-items: center; gap: 10px; }
+.emblem-img {
+  width: 36px; height: 36px; background: var(--white); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.gov-title-block small { display: block; font-size: 10px; color: rgba(255,255,255,0.55); letter-spacing: .04em; }
+.gov-title-block strong { font-size: 12px; letter-spacing: .02em; }
+.topbar-right { display: flex; gap: 14px; align-items: center; }
+.topbar-right a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 11px; }
+.topbar-right a:hover { color: var(--white); }
+.topbar-divider { width: 1px; height: 12px; background: rgba(255,255,255,0.2); }
+
+/* ── MAIN HEADER ─────────────────────── */
+.main-header {
+  background: var(--white);
+  border-bottom: 4px solid var(--saffron);
+  box-shadow: var(--shadow);
+}
+.header-inner {
+  max-width: 1280px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.logo-block { display: flex; align-items: center; gap: 14px; }
+.logo-shield {
+  width: 60px; height: 60px;
+  background: linear-gradient(135deg, var(--navy-dark), var(--navy));
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 26px; box-shadow: var(--shadow);
+}
+.logo-text-block h1 {
+  font-family: 'Noto Serif', serif;
+  font-size: 22px; color: var(--navy-dark); letter-spacing: -.01em;
+}
+.logo-text-block h1 span { color: var(--saffron); }
+.logo-text-block p { font-size: 11px; color: var(--gray-600); letter-spacing: .04em; text-transform: uppercase; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.btn-lodge {
+  background: var(--saffron); color: var(--white); border: none;
+  padding: 9px 20px; border-radius: 4px; font-size: 13px; font-weight: 700;
+  cursor: pointer; letter-spacing: .02em; font-family: 'Source Sans 3', sans-serif;
+  transition: background .2s;
+}
+.btn-lodge:hover { background: var(--saffron-mid); }
+.btn-outline {
+  background: transparent; color: var(--navy); border: 1.5px solid var(--navy);
+  padding: 8px 16px; border-radius: 4px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: 'Source Sans 3', sans-serif; transition: all .2s;
+}
+.btn-outline:hover { background: var(--navy); color: var(--white); }
+
+/* ── NAV BAR ─────────────────────────── */
+.nav-bar {
+  background: var(--navy);
+  position: sticky; top: 0; z-index: 100;
+}
+.nav-inner {
+  max-width: 1280px; margin: 0 auto; padding: 0 16px;
+  display: flex; align-items: stretch;
+}
+.nav-link {
+  color: rgba(255,255,255,0.82); padding: 12px 18px;
+  text-decoration: none; font-size: 13px; font-weight: 600;
+  border-bottom: 3px solid transparent; transition: all .2s;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  letter-spacing: .01em;
+}
+.nav-link:hover, .nav-link.active {
+  color: var(--white); border-bottom-color: var(--saffron);
+  background: rgba(255,255,255,0.06);
+}
+.nav-link .badge {
+  background: var(--saffron); color: var(--white);
+  font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 700;
+}
+
+/* ── MARQUEE ─────────────────────────── */
+.marquee-bar {
+  background: var(--saffron-light); border-bottom: 1px solid #ffd4b0;
+  padding: 5px 0; overflow: hidden;
+}
+.marquee-inner {
+  max-width: 1280px; margin: 0 auto; padding: 0 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+.marquee-label {
+  background: var(--saffron); color: var(--white);
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 3px; white-space: nowrap; letter-spacing: .05em;
+}
+.marquee-text {
+  font-size: 12px; color: var(--navy); font-weight: 500;
+  animation: marqueeScroll 30s linear infinite; white-space: nowrap;
+}
+@keyframes marqueeScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* ── PAGE WRAPPER ────────────────────── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── HERO / HOME ─────────────────────── */
+.hero-banner {
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 50%, #0a4080 100%);
+  color: var(--white); padding: 40px 0 30px;
+  position: relative; overflow: hidden;
+}
+.hero-banner::after {
+  content: ''; position: absolute; right: -60px; top: -60px;
+  width: 300px; height: 300px; border-radius: 50%;
+  background: rgba(255,98,0,0.12);
+}
+.hero-inner {
+  max-width: 1280px; margin: 0 auto; padding: 0 16px;
+  display: grid; grid-template-columns: 1fr 340px; gap: 30px; align-items: center;
+}
+.hero-title {
+  font-family: 'Noto Serif', serif;
+  font-size: 30px; font-weight: 700; line-height: 1.2;
+  margin-bottom: 10px;
+}
+.hero-title span { color: var(--saffron-mid); }
+.hero-sub { font-size: 14px; color: rgba(255,255,255,0.72); line-height: 1.65; margin-bottom: 20px; max-width: 540px; }
+.hero-stats-row { display: flex; gap: 24px; flex-wrap: wrap; }
+.hstat { text-align: center; }
+.hstat-num { font-family: 'Noto Serif', serif; font-size: 26px; font-weight: 700; color: var(--white); }
+.hstat-num span { color: var(--saffron-mid); }
+.hstat-label { font-size: 10px; color: rgba(255,255,255,0.5); letter-spacing: .06em; text-transform: uppercase; }
+
+/* SEARCH BOX */
+.hero-search {
+  background: var(--white); border-radius: 8px; padding: 20px;
+  box-shadow: var(--shadow-md);
+}
+.hero-search h3 {
+  font-family: 'Noto Serif', serif; font-size: 15px; color: var(--navy-dark);
+  margin-bottom: 14px; border-bottom: 2px solid var(--saffron);
+  padding-bottom: 8px;
+}
+.form-row { margin-bottom: 10px; }
+.form-label { display: block; font-size: 11px; font-weight: 700; color: var(--gray-600); margin-bottom: 4px; letter-spacing: .04em; text-transform: uppercase; }
+.form-input {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 4px;
+  padding: 8px 10px; font-size: 13px; font-family: 'Source Sans 3', sans-serif;
+  color: var(--text); outline: none; transition: border-color .2s; background: var(--white);
+}
+.form-input:focus { border-color: var(--navy); }
+.form-input::placeholder { color: var(--gray-400); }
+select.form-input option { background: var(--white); }
+.search-btn {
+  width: 100%; background: var(--navy); color: var(--white); border: none;
+  padding: 10px; border-radius: 4px; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: 'Source Sans 3', sans-serif; transition: background .2s;
+}
+.search-btn:hover { background: var(--navy-dark); }
+
+/* ── MAIN CONTENT ────────────────────── */
+.main-content {
+  max-width: 1280px; margin: 0 auto; padding: 20px 16px;
+}
+
+/* SECTION HEADING */
+.sec-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.sec-title {
+  font-family: 'Noto Serif', serif;
+  font-size: 16px; color: var(--navy-dark);
+  border-left: 4px solid var(--saffron); padding-left: 10px;
+}
+.view-all { font-size: 12px; color: var(--navy); text-decoration: none; font-weight: 600; }
+.view-all:hover { color: var(--saffron); text-decoration: underline; }
+
+/* QUICK ACTION GRID */
+.quick-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;
+}
+.quick-card {
+  background: var(--white); border: 1px solid var(--border); border-radius: 6px;
+  padding: 18px 14px; text-align: center; cursor: pointer;
+  transition: all .2s; border-top: 3px solid transparent;
+}
+.quick-card:hover { box-shadow: var(--shadow-md); border-top-color: var(--saffron); transform: translateY(-2px); }
+.quick-icon { font-size: 26px; margin-bottom: 8px; }
+.quick-label { font-size: 12px; font-weight: 700; color: var(--navy); }
+.quick-sub { font-size: 11px; color: var(--gray-600); margin-top: 2px; }
+
+/* ISSUE TABLE */
+.issue-table-wrap {
+  background: var(--white); border: 1px solid var(--border); border-radius: 6px;
+  overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow);
+}
+.table-header {
+  background: var(--navy); color: var(--white);
+  padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+}
+.table-header h3 { font-size: 13px; font-weight: 700; letter-spacing: .02em; }
+.table-filters { display: flex; gap: 8px; align-items: center; }
+.tbl-filter {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.8); padding: 4px 12px; border-radius: 3px;
+  font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+  transition: all .15s;
+}
+.tbl-filter.active, .tbl-filter:hover { background: var(--saffron); border-color: var(--saffron); color: var(--white); }
+
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  background: var(--gray-50); font-size: 11px; font-weight: 700;
+  color: var(--gray-600); padding: 9px 12px; text-align: left;
+  border-bottom: 2px solid var(--border); letter-spacing: .05em; text-transform: uppercase;
+}
+tbody td {
+  padding: 10px 12px; font-size: 12.5px; border-bottom: 1px solid var(--gray-100);
+  vertical-align: middle;
+}
+tbody tr:hover { background: #F5F8FF; }
+tbody tr:last-child td { border-bottom: none; }
+
+.issue-link {
+  color: var(--navy); text-decoration: none; font-weight: 600;
+  cursor: pointer; font-size: 13px;
+}
+.issue-link:hover { color: var(--saffron); text-decoration: underline; }
+
+/* STATUS BADGES */
+.badge {
+  display: inline-block; padding: 2px 9px; border-radius: 3px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+}
+.badge-filed { background: #FFF3E0; color: #E65100; border: 1px solid #FFB74D; }
+.badge-assigned { background: #E3F2FD; color: #1565C0; border: 1px solid #90CAF9; }
+.badge-progress { background: #FFF8E1; color: #F57F17; border: 1px solid #FFD54F; }
+.badge-verify { background: #F3E5F5; color: #6A1B9A; border: 1px solid #CE93D8; }
+.badge-resolved { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+.badge-closed { background: var(--gray-100); color: var(--gray-600); border: 1px solid var(--border); }
+.badge-escalated { background: #FFEBEE; color: #B71C1C; border: 1px solid #EF9A9A; }
+
+/* PROGRESS TRACKER */
+.progress-tracker { cursor: pointer; }
+.progress-track {
+  height: 6px; background: var(--gray-200); border-radius: 4px; overflow: hidden; width: 100px;
+}
+.progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(to right, var(--saffron), var(--amber)); }
+.progress-text { font-size: 10px; color: var(--gray-600); margin-top: 3px; }
+
+/* ── ISSUE DETAIL PAGE ───────────────── */
+.breadcrumb {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 8px 0;
+}
+.bc-inner { max-width: 1280px; margin: 0 auto; padding: 0 16px; font-size: 12px; }
+.bc-inner a { color: var(--navy); text-decoration: none; }
+.bc-inner a:hover { text-decoration: underline; }
+.bc-inner span { color: var(--gray-400); margin: 0 6px; }
+
+.detail-layout {
+  max-width: 1280px; margin: 0 auto; padding: 20px 16px;
+  display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start;
+}
+
+.detail-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 16px;
+}
+.detail-card-head {
+  background: var(--navy); color: var(--white); padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700;
+}
+.detail-card-head .icon { font-size: 15px; }
+.detail-card-body { padding: 16px; }
+
+/* ISSUE HEADER */
+.issue-header-card {
+  background: var(--white); border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden;
+}
+.issue-header-top {
+  background: linear-gradient(90deg, var(--navy-dark), var(--navy));
+  color: var(--white); padding: 16px 20px;
+}
+.issue-id { font-family: 'Courier Prime', monospace; font-size: 13px; color: rgba(255,255,255,0.6); }
+.issue-title-main { font-family: 'Noto Serif', serif; font-size: 19px; margin: 6px 0 10px; }
+.issue-meta-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.issue-meta-item { font-size: 11px; color: rgba(255,255,255,0.65); display: flex; align-items: center; gap: 5px; }
+.issue-header-body { padding: 14px 20px; display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; border-bottom: 1px solid var(--gray-100); }
+.info-cell {}
+.info-label { font-size: 10px; font-weight: 700; color: var(--gray-400); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 3px; }
+.info-value { font-size: 13px; font-weight: 600; color: var(--text); }
+
+/* 6-STEP PIPELINE VISUAL */
+.pipeline-strip {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 6px; padding: 20px; margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.pipeline-title { font-family: 'Noto Serif', serif; font-size: 14px; color: var(--navy-dark); margin-bottom: 16px; border-left: 3px solid var(--saffron); padding-left: 8px; }
+.pipeline-steps { display: flex; align-items: flex-start; position: relative; }
+.pipeline-steps::before {
+  content: ''; position: absolute;
+  top: 20px; left: 28px; right: 28px; height: 2px;
+  background: var(--gray-200); z-index: 0;
+}
+.pip-step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; z-index: 1; cursor: pointer; }
+.pip-num {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px;
+  border: 2.5px solid var(--border); background: var(--white);
+  transition: all .3s; font-family: 'Courier Prime', monospace;
+}
+.pip-step.done .pip-num { background: var(--green); border-color: var(--green); color: var(--white); }
+.pip-step.current .pip-num { background: var(--saffron); border-color: var(--saffron); color: var(--white); box-shadow: 0 0 0 5px rgba(255,98,0,0.15); animation: pipPulse 1.8s ease-in-out infinite; }
+.pip-step.pending .pip-num { background: var(--gray-100); color: var(--gray-400); }
+@keyframes pipPulse { 0%,100%{box-shadow:0 0 0 5px rgba(255,98,0,0.15)} 50%{box-shadow:0 0 0 8px rgba(255,98,0,0.08)} }
+.pip-info { text-align: center; }
+.pip-tag { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gray-400); }
+.pip-step.done .pip-tag { color: var(--green); }
+.pip-step.current .pip-tag { color: var(--saffron); }
+.pip-name { font-size: 11px; font-weight: 700; color: var(--text); line-height: 1.3; margin-top: 1px; }
+.pip-step.pending .pip-name { color: var(--gray-400); }
+
+/* PHOTO VIEWER */
+.photo-section { margin-bottom: 16px; }
+.photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.photo-box {
+  border: 2px solid var(--border); border-radius: 6px; overflow: hidden;
+  cursor: pointer; transition: all .2s; position: relative;
+  background: var(--gray-50);
+}
+.photo-box:hover { border-color: var(--navy); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.photo-img {
+  width: 100%; height: 180px; object-fit: cover;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; background: linear-gradient(135deg, #e8eef5, #f5f8ff);
+  position: relative;
+}
+.photo-before-img { background: linear-gradient(135deg, #fff3e0, #ffe0b2); }
+.photo-after-img { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
+.photo-label-bar {
+  padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;
+}
+.photo-type { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.photo-type.before { color: var(--red); }
+.photo-type.after { color: var(--green); }
+.photo-hint { font-size: 10px; color: var(--gray-400); }
+.photo-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,51,102,0.7);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .2s; color: var(--white);
+  font-size: 12px; font-weight: 700; gap: 6px;
+}
+.photo-box:hover .photo-overlay { opacity: 1; }
+.photo-pending {
+  height: 180px; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 6px; color: var(--gray-400); font-size: 12px;
+  background: var(--gray-50);
+}
+
+/* GPS MAP */
+.map-section { margin-bottom: 16px; }
+#liveMap { height: 260px; border-radius: 0 0 6px 6px; }
+.map-coords {
+  background: var(--navy-dark); color: var(--white);
+  font-family: 'Courier Prime', monospace; font-size: 11px;
+  padding: 8px 14px; display: flex; align-items: center; justify-content: space-between;
+  border-top: 2px solid var(--saffron);
+}
+.live-dot {
+  width: 7px; height: 7px; background: #4ade80; border-radius: 50%;
+  display: inline-block; margin-right: 5px; animation: livePulse 1.5s ease-in-out infinite;
+}
+@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* TIMELINE */
+.timeline { padding: 4px 0; }
+.tl-row { display: flex; gap: 12px; margin-bottom: 14px; }
+.tl-left { display: flex; flex-direction: column; align-items: center; }
+.tl-dot-outer {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--border); background: var(--white);
+}
+.tl-dot-outer.done { background: var(--green); border-color: var(--green); }
+.tl-dot-outer.current { background: var(--saffron); border-color: var(--saffron); box-shadow: 0 0 0 3px rgba(255,98,0,0.2); }
+.tl-line { flex: 1; width: 2px; background: var(--gray-200); min-height: 20px; margin: 2px auto; }
+.tl-line.done { background: var(--green); }
+.tl-right { flex: 1; padding-bottom: 4px; }
+.tl-step-name { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.tl-step-name.done { color: var(--green); }
+.tl-step-name.current { color: var(--saffron); }
+.tl-step-name.pending { color: var(--gray-400); }
+.tl-step-text { font-size: 11.5px; color: var(--gray-600); line-height: 1.5; }
+.tl-step-time { font-size: 10px; color: var(--gray-400); margin-top: 3px; font-family: 'Courier Prime', monospace; }
+
+/* SIDE PANEL */
+.side-panel {}
+.side-card { background: var(--white); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 14px; }
+.side-card-head { background: var(--navy); color: var(--white); padding: 9px 14px; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+.side-card-body { padding: 14px; }
+.side-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--gray-100); font-size: 12px; }
+.side-row:last-child { border-bottom: none; }
+.side-key { color: var(--gray-600); }
+.side-val { font-weight: 600; color: var(--text); }
+
+/* RATING */
+.star-row { display: flex; gap: 8px; margin: 8px 0; }
+.star-btn { font-size: 22px; cursor: pointer; color: var(--gray-200); transition: color .15s, transform .1s; }
+.star-btn:hover { transform: scale(1.2); }
+.star-btn.filled { color: #F5A623; }
+.rating-msg { font-size: 11px; color: var(--gray-600); }
+
+/* AI CARD */
+.ai-result-card {
+  background: linear-gradient(135deg, #F3E5F5, #EDE7F6);
+  border: 1px solid #CE93D8; border-radius: 6px; padding: 12px; margin-bottom: 10px;
+}
+.ai-result-head { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; color: #6A1B9A; margin-bottom: 6px; }
+.ai-conf-bar { height: 5px; background: rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.ai-conf-fill { height: 100%; background: linear-gradient(to right, #9C27B0, #6A1B9A); border-radius: 4px; }
+
+/* PHOTO LIGHTBOX */
+.lightbox {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1000;
+  display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+}
+.lightbox.open { display: flex; }
+.lightbox-img {
+  max-width: 90vw; max-height: 70vh;
+  border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  font-size: 80px; display: flex; align-items: center; justify-content: center;
+  min-width: 400px; min-height: 300px;
+}
+.lightbox-before { background: linear-gradient(135deg, #fff3e0, #ffe0b2); }
+.lightbox-after { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
+.lightbox-compare {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  max-width: 90vw;
+}
+.lightbox-compare-img {
+  border-radius: 8px; height: 300px;
+  display: flex; align-items: center; justify-content: center; font-size: 60px;
+  flex-direction: column; gap: 10px; color: var(--gray-600); font-size: 14px;
+}
+.lightbox-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-top: 6px; }
+.lightbox-close {
+  position: fixed; top: 20px; right: 24px;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  color: var(--white); width: 36px; height: 36px; border-radius: 50%;
+  cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
+}
+.lightbox-meta { color: rgba(255,255,255,0.7); font-size: 12px; text-align: center; }
+.lightbox-tabs { display: flex; gap: 8px; }
+.lb-tab { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); padding: 5px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all .2s; }
+.lb-tab.active { background: var(--saffron); border-color: var(--saffron); color: var(--white); }
+
+/* PROGRESS DETAIL PAGE */
+.progress-page-header {
+  background: linear-gradient(90deg, var(--navy-dark), var(--navy));
+  color: var(--white); padding: 20px;
+  border-radius: 6px 6px 0 0;
+}
+.progress-page-header h2 { font-family: 'Noto Serif', serif; font-size: 17px; margin-bottom: 4px; }
+.progress-page-header p { font-size: 12px; color: rgba(255,255,255,0.65); }
+
+.big-pipeline {
+  padding: 30px 20px;
+  background: var(--white);
+}
+.big-pip-step {
+  display: flex; gap: 16px; margin-bottom: 0; cursor: pointer;
+  transition: background .15s; padding: 14px 10px; border-radius: 6px;
+}
+.big-pip-step:hover { background: var(--gray-50); }
+.big-pip-left { display: flex; flex-direction: column; align-items: center; }
+.big-pip-circle {
+  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Noto Serif', serif; font-size: 16px; font-weight: 700;
+  border: 3px solid var(--border); background: var(--white);
+}
+.big-pip-circle.done { background: var(--green); border-color: var(--green); color: var(--white); }
+.big-pip-circle.current { background: var(--saffron); border-color: var(--saffron); color: var(--white); box-shadow: 0 0 0 6px rgba(255,98,0,0.12); animation: pipPulse 1.8s ease-in-out infinite; }
+.big-pip-circle.pending { color: var(--gray-400); }
+.big-pip-vline { width: 3px; flex: 1; min-height: 40px; background: var(--gray-200); margin: 4px auto; }
+.big-pip-vline.done { background: var(--green); }
+.big-pip-right { flex: 1; padding-top: 6px; }
+.big-pip-step-num { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gray-400); margin-bottom: 2px; }
+.big-pip-step-num.done { color: var(--green); }
+.big-pip-step-num.current { color: var(--saffron); }
+.big-pip-step-name { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.big-pip-step-name.pending { color: var(--gray-400); }
+.big-pip-step-desc { font-size: 12.5px; color: var(--gray-600); line-height: 1.55; }
+.big-pip-step-time { font-size: 11px; color: var(--gray-400); margin-top: 5px; font-family: 'Courier Prime', monospace; }
+.big-pip-step-badge { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; background: var(--green-light); color: var(--green); padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 700; }
+.big-pip-step-badge.current { background: #FFF3E0; color: var(--saffron); }
+
+/* LODGE FORM PAGE */
+.lodge-layout {
+  max-width: 800px; margin: 0 auto; padding: 20px 16px;
+}
+.lodge-card { background: var(--white); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; box-shadow: var(--shadow); }
+.lodge-head {
+  background: linear-gradient(90deg, var(--navy-dark), var(--navy));
+  color: var(--white); padding: 18px 24px;
+}
+.lodge-head h2 { font-family: 'Noto Serif', serif; font-size: 18px; margin-bottom: 4px; }
+.lodge-head p { font-size: 12px; color: rgba(255,255,255,0.65); }
+.lodge-body { padding: 24px; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-section-title {
+  font-family: 'Noto Serif', serif; font-size: 13px; color: var(--navy-dark);
+  border-bottom: 2px solid var(--saffron); padding-bottom: 6px;
+  margin: 20px 0 14px;
+}
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: 6px;
+  padding: 24px; text-align: center; cursor: pointer; transition: all .2s;
+  background: var(--gray-50);
+}
+.upload-zone:hover { border-color: var(--navy); background: var(--navy-light); }
+.upload-icon { font-size: 28px; margin-bottom: 6px; }
+.ai-detect { background: #F3E5F5; border: 1px solid #CE93D8; border-radius: 5px; padding: 10px 14px; margin-top: 10px; display: none; align-items: center; gap: 8px; font-size: 12px; color: #6A1B9A; font-weight: 600; }
+.lodge-footer { padding: 14px 24px; background: var(--gray-50); border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+/* STATS PAGE */
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+.stat-widget { background: var(--white); border: 1px solid var(--border); border-radius: 6px; padding: 18px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.stat-widget::after { content: ''; position: absolute; right: -12px; top: -12px; width: 60px; height: 60px; border-radius: 50%; opacity: .07; }
+.stat-widget.saffron::after { background: var(--saffron); }
+.stat-widget.blue::after { background: var(--blue); }
+.stat-widget.green::after { background: var(--green); }
+.stat-widget.red::after { background: var(--red); }
+.stat-num { font-family: 'Noto Serif', serif; font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.stat-num.saffron { color: var(--saffron); }
+.stat-num.blue { color: var(--blue); }
+.stat-num.green { color: var(--green); }
+.stat-num.red { color: var(--red); }
+.stat-label { font-size: 11px; font-weight: 700; color: var(--gray-600); text-transform: uppercase; letter-spacing: .05em; }
+.stat-delta { font-size: 11px; margin-top: 5px; }
+.delta-up { color: var(--green); }
+.delta-dn { color: var(--red); }
+
+/* FOOTER */
+footer { background: var(--navy-dark); color: rgba(255,255,255,0.6); margin-top: 30px; }
+.footer-inner { max-width: 1280px; margin: 0 auto; padding: 20px 16px; }
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 24px; margin-bottom: 16px; }
+.footer-about h4 { font-family: 'Noto Serif', serif; font-size: 14px; color: var(--white); margin-bottom: 8px; }
+.footer-about p { font-size: 11.5px; line-height: 1.65; }
+.footer-links h4 { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .06em; }
+.footer-links a { display: block; color: rgba(255,255,255,0.55); font-size: 11.5px; margin-bottom: 5px; text-decoration: none; }
+.footer-links a:hover { color: var(--saffron); }
+.footer-bottom { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+.tricolor-bar { height: 4px; background: linear-gradient(to right, var(--saffron) 33%, var(--white) 33% 66%, var(--green) 66%); }
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .detail-layout { grid-template-columns: 1fr; }
+  .hero-inner { grid-template-columns: 1fr; }
+  .quick-grid { grid-template-columns: repeat(2,1fr); }
+  .stats-grid { grid-template-columns: repeat(2,1fr); }
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .pipeline-steps { flex-wrap: wrap; gap: 10px; }
+  .pipeline-steps::before { display: none; }
+}
+@media (max-width: 600px) {
+  .nav-link { padding: 10px 10px; font-size: 11px; }
+  .issue-header-body { grid-template-columns: repeat(2,1fr); }
+  .photo-grid { grid-template-columns: 1fr; }
+  .lightbox-compare { grid-template-columns: 1fr; }
+}
+
+/* NOTIFICATION TOAST */
+.toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+  background: var(--green); color: var(--white); padding: 12px 20px;
+  border-radius: 6px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-md);
+  transform: translateY(80px); opacity: 0; transition: all .3s;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- TRICOLOR TOP BAR -->
+<div class="tricolor-bar"></div>
+
+<!-- GOV TOP BAR -->
+<div class="gov-topbar">
+  <div class="gov-topbar-inner">
+    <div class="gov-emblem">
+      <div class="emblem-img">🏛️</div>
+      <div class="gov-title-block">
+        <small>भारत सरकार | Government of India</small>
+        <strong>Ministry of Urban Development & Municipal Affairs</strong>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="#">Screen Reader</a>
+      <div class="topbar-divider"></div>
+      <a href="#">हिंदी</a>
+      <div class="topbar-divider"></div>
+      <a href="#">A-</a><a href="#">A</a><a href="#">A+</a>
+      <div class="topbar-divider"></div>
+      <a href="#">Skip to Content</a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN HEADER -->
+<div class="main-header">
+  <div class="header-inner">
+    <div class="logo-block">
+      <div class="logo-shield">🏙️</div>
+      <div class="logo-text-block">
+        <h1>Civic<span>Pulse</span></h1>
+        <p>Centralized Public Issue Redress &amp; Monitoring System</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-outline" onclick="showPage('status')">🔍 Track Issue</button>
+      <button class="btn-lodge" onclick="showPage('lodge')">+ Lodge Issue</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV BAR -->
+<nav class="nav-bar">
+  <div class="nav-inner">
+    <a class="nav-link active" onclick="showPage('home')" id="nav-home">🏠 Home</a>
+    <a class="nav-link" onclick="showPage('lodge')" id="nav-lodge">📋 Lodge Issue</a>
+    <a class="nav-link" onclick="showPage('status')" id="nav-status">🔍 View Status</a>
+    <a class="nav-link" onclick="showPage('archive')" id="nav-archive">📂 Public Archive</a>
+    <a class="nav-link" onclick="showPage('stats')" id="nav-stats">📊 Analytics</a>
+    <a class="nav-link" onclick="showPage('dept')" id="nav-dept">🏢 Departments</a>
+  </div>
+</nav>
+
+<!-- MARQUEE -->
+<div class="marquee-bar">
+  <div class="marquee-inner">
+    <span class="marquee-label">NOTICE</span>
+    <div class="marquee-text">
+      🔔 CivicPulse v3.0 launched with AI-powered auto-categorization &nbsp;|&nbsp;
+      📱 Mobile app now available on Google Play &amp; App Store &nbsp;|&nbsp;
+      ⚡ Average resolution time reduced to 4.2 days — March 2025 &nbsp;|&nbsp;
+      🤖 AI verification feature live for all resolved issues &nbsp;|&nbsp;
+      🏆 CivicPulse wins Digital India Award 2024 &nbsp;|&nbsp;
+      🔔 CivicPulse v3.0 launched with AI-powered auto-categorization &nbsp;|&nbsp;
+      📱 Mobile app now available on Google Play &amp; App Store &nbsp;|&nbsp;
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!--  PAGE: HOME                            -->
+<!-- ═══════════════════════════════════════ -->
+<div id="page-home" class="page active">
+
+  <!-- HERO -->
+  <div class="hero-banner">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-title">Smart <span>Civic Issue</span><br>Resolution System</div>
+        <div class="hero-sub">File, track and verify civic issues with AI-powered categorization, GPS field updates, and transparent public archives. Every issue — from pothole to pipeline — resolved and accountable.</div>
+        <div class="hero-stats-row">
+          <div class="hstat"><div class="hstat-num">2,<span>847</span></div><div class="hstat-label">Issues Filed</div></div>
+          <div class="hstat"><div class="hstat-num">91<span>%</span></div><div class="hstat-label">Resolve Rate</div></div>
+          <div class="hstat"><div class="hstat-num">4.2<span>d</span></div><div class="hstat-label">Avg Resolution</div></div>
+          <div class="hstat"><div class="hstat-num">4.<span>6★</span></div><div class="hstat-label">Citizen Rating</div></div>
+        </div>
+      </div>
+      <div class="hero-search">
+        <h3>🔍 Track Your Issue</h3>
+        <div class="form-row">
+          <label class="form-label">Registration Number</label>
+          <input class="form-input" type="text" placeholder="e.g. CIV-2025-1142" id="trackId">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Mobile / Email (optional)</label>
+          <input class="form-input" type="text" placeholder="For verification">
+        </div>
+        <button class="search-btn" onclick="trackIssue()">View Status →</button>
+        <div style="margin-top:10px;font-size:11px;color:var(--gray-600);text-align:center">
+          <a href="#" onclick="showPage('lodge')" style="color:var(--navy);font-weight:700">Lodge a new issue</a> | 
+          <a href="#" onclick="showPage('archive')" style="color:var(--navy);font-weight:700">Public Archive</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- QUICK ACTIONS -->
+    <div class="sec-head"><div class="sec-title">Quick Actions</div></div>
+    <div class="quick-grid">
+      <div class="quick-card" onclick="showPage('lodge')">
+        <div class="quick-icon">📍</div>
+        <div class="quick-label">Lodge Issue</div>
+        <div class="quick-sub">File with geo-tagged photo</div>
+      </div>
+      <div class="quick-card" onclick="showPage('status')">
+        <div class="quick-icon">🔍</div>
+        <div class="quick-label">Track Status</div>
+        <div class="quick-sub">View resolution progress</div>
+      </div>
+      <div class="quick-card" onclick="showPage('archive')">
+        <div class="quick-icon">📂</div>
+        <div class="quick-label">Public Archive</div>
+        <div class="quick-sub">Transparency records</div>
+      </div>
+      <div class="quick-card" onclick="showPage('stats')">
+        <div class="quick-icon">📊</div>
+        <div class="quick-label">Analytics</div>
+        <div class="quick-sub">Department performance</div>
+      </div>
+    </div>
+
+    <!-- ACTIVE ISSUES TABLE -->
+    <div class="issue-table-wrap">
+      <div class="table-header">
+        <h3>Active Issues — Live Dashboard</h3>
+        <div class="table-filters">
+          <button class="tbl-filter active" onclick="filterTable('all',this)">All</button>
+          <button class="tbl-filter" onclick="filterTable('filed',this)">Filed</button>
+          <button class="tbl-filter" onclick="filterTable('progress',this)">In Progress</button>
+          <button class="tbl-filter" onclick="filterTable('resolved',this)">Resolved</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Reg. No.</th>
+            <th>Issue Description</th>
+            <th>Category</th>
+            <th>Department</th>
+            <th>Filed Date</th>
+            <th>Status</th>
+            <th>Progress</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="issueTableBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!--  PAGE: ISSUE DETAIL                    -->
+<!-- ═══════════════════════════════════════ -->
+<div id="page-detail" class="page">
+  <div class="breadcrumb">
+    <div class="bc-inner">
+      <a href="#" onclick="showPage('home')">Home</a>
+      <span>›</span>
+      <a href="#" onclick="showPage('status')">View Status</a>
+      <span>›</span>
+      <span id="detailBreadcrumb" style="color:var(--text);font-weight:600">CIV-2025-1142</span>
+    </div>
+  </div>
+
+  <div class="detail-layout">
+    <!-- LEFT -->
+    <div>
+      <!-- ISSUE HEADER -->
+      <div class="issue-header-card">
+        <div class="issue-header-top">
+          <div class="issue-id" id="d-id">CIV-2025-1142</div>
+          <div class="issue-title-main" id="d-title">Pothole on Main Street — Near Intersection</div>
+          <div class="issue-meta-row">
+            <span class="issue-meta-item">📍 <span id="d-loc">Sector 4, Block A, New Delhi</span></span>
+            <span class="issue-meta-item">🗓️ Filed: <span id="d-date">06 Mar 2025</span></span>
+            <span class="issue-meta-item">🤖 AI: <span id="d-ai">Roads & Infrastructure · 96% confidence</span></span>
+          </div>
+        </div>
+        <div class="issue-header-body">
+          <div class="info-cell"><div class="info-label">Department</div><div class="info-value" id="d-dept">Roads & Infra</div></div>
+          <div class="info-cell"><div class="info-label">Officer</div><div class="info-value" id="d-officer">Rajesh Kumar</div></div>
+          <div class="info-cell"><div class="info-label">Priority</div><div class="info-value" id="d-priority">High</div></div>
+          <div class="info-cell"><div class="info-label">Status</div><div id="d-status"></div></div>
+        </div>
+      </div>
+
+      <!-- PIPELINE STRIP (clickable → progress page) -->
+      <div class="pipeline-strip" onclick="showPage('progress')">
+        <div class="pipeline-title">📋 Resolution Pipeline — Click for Full Details</div>
+        <div class="pipeline-steps" id="pipelineStrip"></div>
+      </div>
+
+      <!-- PHOTO EVIDENCE -->
+      <div class="detail-card photo-section">
+        <div class="detail-card-head"><span class="icon">📸</span> Photo Evidence — Before &amp; After</div>
+        <div class="detail-card-body">
+          <div class="photo-grid" id="photoGrid"></div>
+        </div>
+      </div>
+
+      <!-- GPS MAP -->
+      <div class="detail-card map-section">
+        <div class="detail-card-head"><span class="icon">📡</span> Live GPS Location</div>
+        <div id="liveMap"></div>
+        <div class="map-coords">
+          <span><span class="live-dot"></span>LIVE GPS · <span id="mapCoords">28.6139°N, 77.2090°E</span></span>
+          <span style="color:rgba(255,255,255,0.5)" id="mapAddr">Sector 4, New Delhi</span>
+        </div>
+      </div>
+
+      <!-- TIMELINE -->
+      <div class="detail-card">
+        <div class="detail-card-head"><span class="icon">⏱️</span> Resolution Timeline</div>
+        <div class="detail-card-body">
+          <div class="timeline" id="detailTimeline"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="side-panel">
+      <!-- AI ANALYSIS -->
+      <div class="side-card">
+        <div class="side-card-head">🤖 AI Analysis Report</div>
+        <div class="side-card-body">
+          <div class="ai-result-card">
+            <div class="ai-result-head">🔍 Category Detected</div>
+            <div id="aiCategory" style="font-size:13px;font-weight:700;color:var(--text)">Road Damage — Pothole</div>
+            <div style="font-size:11px;color:var(--gray-600);margin-top:2px">Sub-type: Surface depression &gt;10cm</div>
+            <div style="margin-top:8px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>AI Confidence</span><span style="color:#6A1B9A;font-weight:700" id="aiConf">96%</span></div>
+              <div class="ai-conf-bar"><div class="ai-conf-fill" id="aiConfBar" style="width:96%"></div></div>
+            </div>
+          </div>
+          <div class="side-row"><span class="side-key">Suggested Dept</span><span class="side-val" id="aiDept">Roads & Infra</span></div>
+          <div class="side-row"><span class="side-key">Severity</span><span class="side-val" id="aiSeverity">High</span></div>
+          <div class="side-row"><span class="side-key">Est. Resolution</span><span class="side-val" id="aiEst">2–4 days</span></div>
+          <div class="side-row"><span class="side-key">Verification</span><span class="side-val" id="aiVerify">Pending</span></div>
+        </div>
+      </div>
+
+      <!-- PROGRESS SUMMARY -->
+      <div class="side-card">
+        <div class="side-card-head">📊 Progress Summary</div>
+        <div class="side-card-body">
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span>Overall Progress</span><span style="font-weight:700;color:var(--saffron)" id="progressPct">60%</span></div>
+            <div style="height:8px;background:var(--gray-200);border-radius:6px;overflow:hidden">
+              <div id="progressBar" style="height:100%;background:linear-gradient(to right,var(--saffron),var(--amber));border-radius:6px;width:60%;transition:width .5s"></div>
+            </div>
+          </div>
+          <button onclick="showPage('progress')" style="width:100%;background:var(--navy);color:var(--white);border:none;padding:9px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Source Sans 3',sans-serif;">
+            View Full Progress Details →
+          </button>
+        </div>
+      </div>
+
+      <!-- CITIZEN APPROVAL -->
+      <div class="side-card">
+        <div class="side-card-head">⭐ Citizen Approval</div>
+        <div class="side-card-body">
+          <div style="font-size:12px;color:var(--gray-600);margin-bottom:8px" id="rateSubtitle">Rate the resolution once completed:</div>
+          <div class="star-row" id="starRow">
+            <span class="star-btn" onclick="rate(1)">★</span>
+            <span class="star-btn" onclick="rate(2)">★</span>
+            <span class="star-btn" onclick="rate(3)">★</span>
+            <span class="star-btn" onclick="rate(4)">★</span>
+            <span class="star-btn" onclick="rate(5)">★</span>
+          </div>
+          <div class="rating-msg" id="ratingMsg">⚠ Available after AI verification</div>
+          <div style="margin-top:10px">
+            <textarea class="form-input" rows="2" placeholder="Add feedback (optional)..." style="font-size:12px"></textarea>
+          </div>
+          <button style="width:100%;background:var(--saffron);color:var(--white);border:none;padding:8px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Source Sans 3',sans-serif;margin-top:8px" onclick="submitRating()">Submit Rating</button>
+        </div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="side-card">
+        <div class="side-card-head">⚙️ Actions</div>
+        <div class="side-card-body" style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn-outline" style="width:100%;font-size:12px" onclick="escalate()">⚠ Escalate Issue</button>
+          <button class="btn-outline" style="width:100%;font-size:12px">📤 Share / Export</button>
+          <button class="btn-outline" style="width:100%;font-size:12px">🔔 Enable Notifications</button>
+          <button class="btn-outline" style="width:100%;font-size:12px;color:var(--red);border-color:var(--red)">🚫 Report Incorrect Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!--  PAGE: PROGRESS DETAIL                 -->
+<!-- ═══════════════════════════════════════ -->
+<div id="page-progress" class="page">
+  <div class="breadcrumb">
+    <div class="bc-inner">
+      <a href="#" onclick="showPage('home')">Home</a>
+      <span>›</span>
+      <a href="#" onclick="showPage('detail')">Issue Detail</a>
+      <span>›</span>
+      <span style="color:var(--text);font-weight:600">Progress Tracker</span>
+    </div>
+  </div>
+  <div class="main-content" style="max-width:800px">
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)">
+      <div class="progress-page-header">
+        <h2>📋 6-Step Resolution Pipeline</h2>
+        <p id="progressIssueId">Issue: CIV-2025-1142 — Pothole on Main Street</p>
+      </div>
+      <div class="big-pipeline" id="bigPipeline"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!--  PAGE: LODGE                           -->
+<!-- ═══════════════════════════════════════ -->
+<div id="page-lodge" class="page">
+  <div class="breadcrumb">
+    <div class="bc-inner">
+      <a href="#" onclick="showPage('home')">Home</a>
+      <span>›</span>
+      <span style="color:var(--text);font-weight:600">Lodge New Issue</span>
+    </div>
+  </div>
+  <div class="lodge-layout">
+    <div class="lodge-card">
+      <div class="lodge-head">
+        <h2>📍 Lodge a New Public Issue</h2>
+        <p>All fields marked * are mandatory. AI will auto-categorize and route your issue.</p>
+      </div>
+      <div class="lodge-body">
+        <div class="form-section-title">Issue Information</div>
+        <div class="form-row">
+          <label class="form-label">Issue Title *</label>
+          <input class="form-input" type="text" placeholder="Brief description of the problem" id="lodgeTitle">
+        </div>
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Category</label>
+            <select class="form-input" id="lodgeCat">
+              <option value="">— Let AI detect —</option>
+              <option>🚧 Roads &amp; Potholes</option>
+              <option>💧 Water &amp; Drainage</option>
+              <option>🗑️ Waste &amp; Sanitation</option>
+              <option>💡 Street Lighting</option>
+              <option>🌳 Parks &amp; Public Spaces</option>
+              <option>🏗️ Infrastructure</option>
+              <option>📋 Other</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Priority</label>
+            <select class="form-input">
+              <option>Normal</option>
+              <option>High — Safety Risk</option>
+              <option>Urgent — Emergency</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Detailed Description *</label>
+          <textarea class="form-input" rows="3" placeholder="Describe the issue in detail — when noticed, how long present, impact on residents..."></textarea>
+        </div>
+
+        <div class="form-section-title">📸 Geo-tagged Photo Evidence</div>
+        <div class="upload-zone" id="uploadZone" onclick="simulateLodgeUpload()">
+          <div class="upload-icon" id="uploadIconL">📷</div>
+          <div style="font-weight:700;font-size:13px" id="uploadTextL">Click to upload photo(s)</div>
+          <div style="font-size:11px;color:var(--gray-400);margin-top:4px">JPEG, PNG up to 5MB · GPS metadata auto-extracted</div>
+        </div>
+        <div class="ai-detect" id="aiDetectL">
+          <span style="font-size:18px">🤖</span>
+          <div>
+            <div>AI Detected: <span id="aiDetectTextL">Road Damage — Pothole (94% confidence)</span></div>
+            <div style="font-size:11px;font-weight:400;margin-top:2px">Suggested department: Roads &amp; Infrastructure</div>
+          </div>
+        </div>
+
+        <div class="form-section-title">📍 Location Details</div>
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Latitude (auto-detected)</label>
+            <input class="form-input" type="text" id="lodgeLat" value="28.6139">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Longitude (auto-detected)</label>
+            <input class="form-input" type="text" id="lodgeLng" value="77.2090">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Address / Landmark *</label>
+          <input class="form-input" type="text" placeholder="Nearest landmark or street name">
+        </div>
+
+        <div class="form-section-title">👤 Complainant Details</div>
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Full Name *</label>
+            <input class="form-input" type="text" placeholder="As per Aadhaar">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Mobile Number *</label>
+            <input class="form-input" type="tel" placeholder="+91 XXXXX XXXXX">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Email Address (for updates)</label>
+          <input class="form-input" type="email" placeholder="Optional">
+        </div>
+      </div>
+      <div class="lodge-footer">
+        <button class="btn-outline" onclick="showPage('home')">Cancel</button>
+        <button class="btn-lodge" onclick="submitLodge()">Submit Issue →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!--  PAGE: STATUS / SEARCH                 -->
+<!-- ═══════════════════════════════════════ -->
+<div id="page-status" class="page">
+  <div class="breadcrumb">
+    <div class="bc-inner">
+      <a href="#" onclick="showPage('home')">Home</a>
+      <span>›</span>
+      <span style="color:var(--text);font-weight:600">View Issue Status</span>
+    </div>
+  </div>
+  <div class="main-content" style="max-width:700px">
+    <div class="lodge-card" style="border-radius:6px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow)">
+      <div style="background:linear-gradient(90deg,var(--navy-dark),var(--navy));color:var(--white);padding:18px 24px">
+        <h2 style="font-family:'Noto Serif',serif;font-size:17px;margin-bottom:4px">🔍 Track Issue Status</h2>
+        <p style="font-size:12px;color:rgba(255,255,255,0.65)">Enter your registration number to view real-time status</p>
+      </div>
+      <div style="padding:24px">
+        <div class="form-row">
+          <label class="form-label">Registration Number *</label>
+          <input class="form-input" type="text" placeholder="e.g. CIV-2025-1142" id="statusInput">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Mobile / Email (optional)</label>
+          <input class="form-input" type="text" placeholder="For additional verification">
+        </div>
+        <button class="search-btn" onclick="trackFromStatus()">Search →</button>
+        <div style="margin-top:14px;padding:12px;background:var(--saffron-light);border:1px solid #ffd4b0;border-radius:5px;font-size:12px;color:var(--amber)">
+          💡 <strong>Try:</strong> CIV-2025-1142, CIV-2025-1138, CIV-2025-1127, CIV-2025-1118, CIV-2025-1097
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!--  PAGE: ARCHIVE                         -->
+<!-- ═══════════════════════════════════════ -->
+<div id="page-archive" class="page">
+  <div class="breadcrumb">
+    <div class="bc-inner">
+      <a href="#" onclick="showPage('home')">Home</a>
+      <span>›</span>
+      <span style="color:var(--text);font-weight:600">Public Archive</span>
+    </div>
+  </div>
+  <div class="main-content">
+    <div style="background:var(--saffron-light);border:1px solid #ffd4b0;border-radius:6px;padding:14px 18px;margin-bottom:16px;display:flex;gap:12px;align-items:center">
+      <span style="font-size:20px">📂</span>
+      <div>
+        <div style="font-weight:700;font-size:13px;color:var(--navy-dark)">Public Transparency Archive</div>
+        <div style="font-size:12px;color:var(--gray-600)">All resolved and closed issues are publicly listed here for transparency and accountability under Right to Information Act.</div>
+      </div>
+    </div>
+    <div class="issue-table-wrap">
+      <div class="table-header">
+        <h3>Public Record of All Issues (2,704 entries)</h3>
+        <div class="table-filters">
+          <button class="tbl-filter active">All Outcomes</button>
+          <button class="tbl-filter">Resolved</button>
+          <button class="tbl-filter">Escalated</button>
+          <button class="tbl-filter">Failed</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Issue ID</th><th>Description</th><th>Category</th><th>Department</th>
+            <th>Days Taken</th><th>AI Score</th><th>Citizen Rating</th><th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody id="archiveBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!--  PAGE: STATS                           -->
+<!-- ═══════════════════════════════════════ -->
+<div id="page-stats" class="page">
+  <div class="breadcrumb">
+    <div class="bc-inner">
+      <a href="#" onclick="showPage('home')">Home</a>
+      <span>›</span><span style="color:var(--text);font-weight:600">Analytics Dashboard</span>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="stats-grid">
+      <div class="stat-widget saffron"><div class="stat-num saffron">2,847</div><div class="stat-label">Total Filed</div><div class="stat-delta delta-up">↑ 143 this month</div></div>
+      <div class="stat-widget blue"><div class="stat-num blue">201</div><div class="stat-label">Active Cases</div><div class="stat-delta delta-up">↑ 12 today</div></div>
+      <div class="stat-widget green"><div class="stat-num green">2,596</div><div class="stat-label">Resolved</div><div class="stat-delta delta-up">91.2% rate</div></div>
+      <div class="stat-widget red"><div class="stat-num red">50</div><div class="stat-label">Escalated</div><div class="stat-delta delta-dn">1.8% rate</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="detail-card">
+        <div class="detail-card-head">📊 Department Performance</div>
+        <div class="detail-card-body">
+          <table style="width:100%">
+            <thead><tr><th>Department</th><th>Issues</th><th>Resolved</th><th>Avg Days</th></tr></thead>
+            <tbody>
+              <tr><td>Roads & Infra</td><td>924</td><td><span class="badge badge-resolved">93%</span></td><td>3.2d</td></tr>
+              <tr><td>Water & Drainage</td><td>701</td><td><span class="badge badge-resolved">89%</span></td><td>4.8d</td></tr>
+              <tr><td>Sanitation</td><td>558</td><td><span class="badge badge-resolved">94%</span></td><td>2.1d</td></tr>
+              <tr><td>Electrical Dept</td><td>402</td><td><span class="badge badge-resolved">97%</span></td><td>1.9d</td></tr>
+              <tr><td>Parks & Gardens</td><td>262</td><td><span class="badge badge-progress">82%</span></td><td>6.4d</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="detail-card">
+        <div class="detail-card-head">🤖 AI Performance</div>
+        <div class="detail-card-body">
+          <div class="side-row"><span class="side-key">Avg AI Confidence</span><span class="side-val" style="color:#6A1B9A">93.4%</span></div>
+          <div class="side-row"><span class="side-key">Correct Categorizations</span><span class="side-val" style="color:var(--green)">97.1%</span></div>
+          <div class="side-row"><span class="side-key">Auto-routed Correctly</span><span class="side-val" style="color:var(--green)">94.8%</span></div>
+          <div class="side-row"><span class="side-key">Photo Verifications</span><span class="side-val">1,847</span></div>
+          <div class="side-row"><span class="side-key">False Positives</span><span class="side-val" style="color:var(--red)">2.9%</span></div>
+          <div class="side-row"><span class="side-key">Avg Verification Time</span><span class="side-val">4.2 mins</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!--  PAGE: DEPARTMENTS                     -->
+<!-- ═══════════════════════════════════════ -->
+<div id="page-dept" class="page">
+  <div class="breadcrumb"><div class="bc-inner"><a href="#" onclick="showPage('home')">Home</a><span>›</span><span style="color:var(--text);font-weight:600">Departments</span></div></div>
+  <div class="main-content">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <div class="quick-card" style="text-align:left;border-top:4px solid var(--saffron)">
+        <div style="font-size:28px;margin-bottom:8px">🚧</div>
+        <div style="font-weight:700;font-size:14px;color:var(--navy-dark)">Roads &amp; Infrastructure</div>
+        <div style="font-size:11px;color:var(--gray-600);margin-top:4px">Potholes, road damage, pavement repairs</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--gray-600)">Officer-in-Charge: <strong>Sh. R.K. Sharma</strong></div>
+        <div style="font-size:11px;color:var(--green);margin-top:3px">✓ 924 issues · 93% resolve rate</div>
+      </div>
+      <div class="quick-card" style="text-align:left;border-top:4px solid var(--blue)">
+        <div style="font-size:28px;margin-bottom:8px">💧</div>
+        <div style="font-weight:700;font-size:14px;color:var(--navy-dark)">Water &amp; Drainage</div>
+        <div style="font-size:11px;color:var(--gray-600);margin-top:4px">Leakages, blocked drains, flooding</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--gray-600)">Officer-in-Charge: <strong>Ms. S. Rao</strong></div>
+        <div style="font-size:11px;color:var(--green);margin-top:3px">✓ 701 issues · 89% resolve rate</div>
+      </div>
+      <div class="quick-card" style="text-align:left;border-top:4px solid var(--green)">
+        <div style="font-size:28px;margin-bottom:8px">🗑️</div>
+        <div style="font-weight:700;font-size:14px;color:var(--navy-dark)">Sanitation</div>
+        <div style="font-size:11px;color:var(--gray-600);margin-top:4px">Garbage collection, waste management</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--gray-600)">Officer-in-Charge: <strong>Sh. A. Verma</strong></div>
+        <div style="font-size:11px;color:var(--green);margin-top:3px">✓ 558 issues · 94% resolve rate</div>
+      </div>
+      <div class="quick-card" style="text-align:left;border-top:4px solid #F5A623">
+        <div style="font-size:28px;margin-bottom:8px">💡</div>
+        <div style="font-weight:700;font-size:14px;color:var(--navy-dark)">Electrical Dept</div>
+        <div style="font-size:11px;color:var(--gray-600);margin-top:4px">Street lights, electrical hazards</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--gray-600)">Officer-in-Charge: <strong>Sh. P. Gupta</strong></div>
+        <div style="font-size:11px;color:var(--green);margin-top:3px">✓ 402 issues · 97% resolve rate</div>
+      </div>
+      <div class="quick-card" style="text-align:left;border-top:4px solid #4CAF50">
+        <div style="font-size:28px;margin-bottom:8px">🌳</div>
+        <div style="font-weight:700;font-size:14px;color:var(--navy-dark)">Parks &amp; Gardens</div>
+        <div style="font-size:11px;color:var(--gray-600);margin-top:4px">Park maintenance, fallen trees, public spaces</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--gray-600)">Officer-in-Charge: <strong>Ms. N. Singh</strong></div>
+        <div style="font-size:11px;color:var(--green);margin-top:3px">✓ 262 issues · 82% resolve rate</div>
+      </div>
+      <div class="quick-card" style="text-align:left;border-top:4px solid var(--teal)">
+        <div style="font-size:28px;margin-bottom:8px">🏗️</div>
+        <div style="font-weight:700;font-size:14px;color:var(--navy-dark)">Urban Infrastructure</div>
+        <div style="font-size:11px;color:var(--gray-600);margin-top:4px">Buildings, bridges, public structures</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--gray-600)">Officer-in-Charge: <strong>Sh. D. Mehta</strong></div>
+        <div style="font-size:11px;color:var(--green);margin-top:3px">✓ 0 issues · — resolve rate</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!--  PHOTO LIGHTBOX                        -->
+<!-- ═══════════════════════════════════════ -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <div class="lightbox-tabs" id="lbTabs">
+    <button class="lb-tab active" onclick="lbTab('before')">📷 Before</button>
+    <button class="lb-tab" onclick="lbTab('after')">✅ After</button>
+    <button class="lb-tab" onclick="lbTab('compare')">🔄 Compare</button>
+  </div>
+  <div id="lbContent"></div>
+  <div class="lightbox-meta" id="lbMeta"></div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="tricolor-bar"></div>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-about">
+        <h4>CivicPulse — CPIRES</h4>
+        <p>Centralized Public Issue Redress &amp; Enhancement System. AI-powered civic grievance platform of the Ministry of Urban Development, Government of India. Available 24×7 for all citizens.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Quick Links</h4>
+        <a href="#">Lodge Issue</a>
+        <a href="#">Track Status</a>
+        <a href="#">Public Archive</a>
+        <a href="#">Department List</a>
+        <a href="#">RTI Portal</a>
+      </div>
+      <div class="footer-links">
+        <h4>Resources</h4>
+        <a href="#">User Manual (PDF)</a>
+        <a href="#">FAQs</a>
+        <a href="#">Contact Nodal Officer</a>
+        <a href="#">Website Policies</a>
+        <a href="#">Accessibility</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 CivicPulse · Ministry of Urban Development · NIC · Content owned by DARPG</span>
+      <span>Last Updated: 08-03-2025 · Version 3.0.0 · Total Visitors: 6,91,57,40</span>
+    </div>
+  </div>
+  <div class="tricolor-bar"></div>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────
+const ISSUES = [
+  {
+    id:'CIV-2025-1142', title:'Pothole on Main Street — Near Traffic Intersection',
+    cat:'🚧 Roads', dept:'Roads & Infra', officer:'Sh. Rajesh Kumar (#R-04)',
+    priority:'High', date:'06 Mar 2025', status:'progress', statusLabel:'IN PROGRESS',
+    statusBadge:'badge-progress', ai:'Roads & Infra', aiConf:96, aiCat:'Road Damage — Pothole',
+    aiSeverity:'High', aiEst:'2–4 days', aiVerify:'Pending',
+    loc:'Sector 4, Block A, New Delhi', lat:28.6139, lng:77.2090, progress:60,
+    photos:{before:true, after:false},
+    desc:'Large pothole approximately 40cm diameter and 15cm deep near main traffic intersection. Causing vehicle damage. Multiple residents affected.',
+    timeline:[
+      {s:'Filed', txt:'Photo uploaded (IMG_20250306.jpg). GPS extracted: 28.6139°N, 77.2090°E. AI categorized as Road Damage — Pothole with 96% confidence.', time:'06 Mar 2025, 09:14', done:true},
+      {s:'Auto-Assigned', txt:'AI routed to Roads & Infrastructure Dept. Assigned to Officer Sh. Rajesh Kumar (#R-04). Priority: High.', time:'06 Mar 2025, 09:15', done:true},
+      {s:'GPS Field Update', txt:'Worker Sh. M. Prasad checked in at site via GPS. Before-photo uploaded. Repair materials arrived. Work in progress.', time:'07 Mar 2025, 09:43', done:false, current:true},
+      {s:'AI Verification', txt:'Pending — awaiting after-photo upload from field worker.', time:'—', done:false},
+      {s:'Citizen Approval', txt:'Awaiting your rating after AI verification.', time:'—', done:false},
+      {s:'Public Archive', txt:'Will be published upon citizen approval.', time:'—', done:false},
+    ]
+  },
+  {
+    id:'CIV-2025-1138', title:'Overflowing Storm Drain — Park Avenue, Sector 7',
+    cat:'💧 Water', dept:'Water & Drainage', officer:'Ms. Sunita Rao (#W-11)',
+    priority:'High', date:'05 Mar 2025', status:'verify', statusLabel:'AI VERIFY',
+    statusBadge:'badge-verify', ai:'Water & Drainage', aiConf:89, aiCat:'Drainage Blockage',
+    aiSeverity:'Medium', aiEst:'3–5 days', aiVerify:'In Progress',
+    loc:'Park Avenue, Sector 7, Delhi', lat:28.6200, lng:77.2150, progress:80,
+    photos:{before:true, after:true},
+    desc:'Blocked drain overflowing onto road after recent rainfall. Health hazard due to stagnant water.',
+    timeline:[
+      {s:'Filed', txt:'Photo uploaded. AI detected water drainage blockage with 89% confidence.', time:'05 Mar 2025, 14:20', done:true},
+      {s:'Auto-Assigned', txt:'Assigned to Water & Drainage. Officer: Ms. Sunita Rao (#W-11).', time:'05 Mar 2025, 14:21', done:true},
+      {s:'GPS Field Update', txt:'Worker arrived at site. Drain cleared manually. After-photo uploaded.', time:'06 Mar 2025, 11:02', done:true},
+      {s:'AI Verification', txt:'Analyzing before/after photos for fix quality confirmation.', time:'07 Mar 2025, 08:30', done:false, current:true},
+      {s:'Citizen Approval', txt:'Pending verification outcome.', time:'—', done:false},
+      {s:'Public Archive', txt:'—', time:'—', done:false},
+    ]
+  },
+  {
+    id:'CIV-2025-1127', title:'Street Light Non-Functional — MG Road',
+    cat:'💡 Electrical', dept:'Electrical Dept', officer:'Sh. Anil Sharma (#E-03)',
+    priority:'Medium', date:'03 Mar 2025', status:'resolved', statusLabel:'RESOLVED',
+    statusBadge:'badge-resolved', ai:'Electrical Dept', aiConf:98, aiCat:'Street Light Failure',
+    aiSeverity:'Medium', aiEst:'1–2 days', aiVerify:'✓ Confirmed',
+    loc:'MG Road, Block 2, Delhi', lat:28.6050, lng:77.2000, progress:100,
+    photos:{before:true, after:true},
+    desc:'Street light non-functional for 3 weeks. Night safety issue for pedestrians.',
+    timeline:[
+      {s:'Filed', txt:'Photo uploaded. AI detected electrical infrastructure failure with 98% confidence.', time:'03 Mar 2025, 18:45', done:true},
+      {s:'Auto-Assigned', txt:'Assigned to Electrical Dept. Officer: Sh. Anil Sharma (#E-03).', time:'03 Mar 2025, 18:46', done:true},
+      {s:'GPS Field Update', txt:'Technician arrived. Bulb and wiring replaced. After-photo uploaded.', time:'04 Mar 2025, 14:30', done:true},
+      {s:'AI Verification', txt:'AI confirmed: Light functional. Before/after comparison: Quality — Excellent. Fix verified ✓', time:'04 Mar 2025, 15:10', done:true},
+      {s:'Citizen Approval', txt:'Citizen rated 5★. Comment: "Quick and efficient repair!"', time:'05 Mar 2025, 09:22', done:true},
+      {s:'Public Archive', txt:'Published to public transparency archive.', time:'05 Mar 2025, 09:30', done:true},
+    ]
+  },
+  {
+    id:'CIV-2025-1118', title:'Uncollected Garbage — Gandhi Nagar Phase 2',
+    cat:'🗑️ Sanitation', dept:'Sanitation', officer:'Ms. Meena Devi (#S-07)',
+    priority:'High', date:'05 Mar 2025', status:'assigned', statusLabel:'ASSIGNED',
+    statusBadge:'badge-assigned', ai:'Sanitation', aiConf:92, aiCat:'Waste Accumulation',
+    aiSeverity:'High', aiEst:'1–2 days', aiVerify:'—',
+    loc:'Gandhi Nagar, Phase 2, Delhi', lat:28.6300, lng:77.1950, progress:25,
+    photos:{before:true, after:false},
+    desc:'Large garbage pile at street corner. Uncollected for 5 days. Foul smell, hygiene risk.',
+    timeline:[
+      {s:'Filed', txt:'Photo uploaded. AI categorized as Waste Management with 92% confidence.', time:'05 Mar 2025, 07:10', done:true},
+      {s:'Auto-Assigned', txt:'Assigned to Sanitation Dept. Officer: Ms. Meena Devi (#S-07).', time:'05 Mar 2025, 07:11', done:true},
+      {s:'GPS Field Update', txt:'Scheduled for collection tomorrow morning.', time:'—', done:false, current:true},
+      {s:'AI Verification', txt:'—', time:'—', done:false},
+      {s:'Citizen Approval', txt:'—', time:'—', done:false},
+      {s:'Public Archive', txt:'—', time:'—', done:false},
+    ]
+  },
+  {
+    id:'CIV-2025-1097', title:'Park Bench Vandalized — Nehru Park East Wing',
+    cat:'🌳 Parks', dept:'Parks & Gardens', officer:'Pending Assignment',
+    priority:'Low', date:'04 Mar 2025', status:'filed', statusLabel:'FILED',
+    statusBadge:'badge-filed', ai:'Parks & Gardens', aiConf:87, aiCat:'Public Property Damage',
+    aiSeverity:'Low', aiEst:'5–7 days', aiVerify:'—',
+    loc:'Nehru Park, East Wing, Delhi', lat:28.5950, lng:77.1880, progress:10,
+    photos:{before:true, after:false},
+    desc:'Wooden bench broken and covered in graffiti. Safety risk for children.',
+    timeline:[
+      {s:'Filed', txt:'Photo uploaded. AI detected public property damage with 87% confidence.', time:'04 Mar 2025, 16:30', done:true},
+      {s:'Auto-Assigned', txt:'Awaiting department routing confirmation.', time:'—', done:false, current:true},
+      {s:'GPS Field Update', txt:'—', time:'—', done:false},
+      {s:'AI Verification', txt:'—', time:'—', done:false},
+      {s:'Citizen Approval', txt:'—', time:'—', done:false},
+      {s:'Public Archive', txt:'—', time:'—', done:false},
+    ]
+  }
+];
+
+const ARCHIVE = [
+  {id:'CIV-2025-1089',desc:'Cracked pavement near school gate',cat:'🚧 Roads',dept:'Roads',days:3,conf:97,rating:5,outcome:'resolved'},
+  {id:'CIV-2025-1082',desc:'Water leakage from main pipeline',cat:'💧 Water',dept:'Water',days:5,conf:91,rating:4,outcome:'resolved'},
+  {id:'CIV-2025-1076',desc:'Missing manhole cover — public hazard',cat:'🚧 Roads',dept:'Roads',days:2,conf:99,rating:5,outcome:'resolved'},
+  {id:'CIV-2025-1071',desc:'Fallen tree blocking residential road',cat:'🌳 Parks',dept:'Parks',days:1,conf:88,rating:3,outcome:'resolved'},
+  {id:'CIV-2025-1065',desc:'Sewage overflow near daily market',cat:'💧 Water',dept:'Water',days:8,conf:94,rating:2,outcome:'escalated'},
+  {id:'CIV-2025-1058',desc:'Illegal dumping near children park',cat:'🗑️ Waste',dept:'Sanitation',days:4,conf:90,rating:4,outcome:'resolved'},
+  {id:'CIV-2025-1043',desc:'Street light — Ring Road Section 3',cat:'💡 Electric',dept:'Electrical',days:3,conf:98,rating:5,outcome:'resolved'},
+  {id:'CIV-2025-1031',desc:'Broken drainage pipe — flooding risk',cat:'💧 Water',dept:'Water',days:6,conf:86,rating:3,outcome:'resolved'},
+];
+
+let currentIssue = ISSUES[0];
+let map = null;
+let mapMarker = null;
+
+// ─────────────────────────────────────────
+// PAGE NAVIGATION
+// ─────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  const nl = document.getElementById('nav-' + name);
+  if (nl) nl.classList.add('active');
+  window.scrollTo(0, 0);
+  if (name === 'detail') initMap();
+}
+
+// ─────────────────────────────────────────
+// RENDER HOME TABLE
+// ─────────────────────────────────────────
+function renderTable(filter) {
+  const tbody = document.getElementById('issueTableBody');
+  const filtered = filter === 'all' ? ISSUES : ISSUES.filter(i => {
+    if (filter === 'filed') return i.status === 'filed';
+    if (filter === 'progress') return i.status === 'progress' || i.status === 'assigned' || i.status === 'verify';
+    if (filter === 'resolved') return i.status === 'resolved';
+    return true;
+  });
+  tbody.innerHTML = filtered.map(issue => `
+    <tr>
+      <td><a class="issue-link" onclick="openIssue('${issue.id}')">${issue.id}</a></td>
+      <td><a class="issue-link" onclick="openIssue('${issue.id}')">${issue.title}</a></td>
+      <td>${issue.cat}</td>
+      <td>${issue.dept}</td>
+      <td>${issue.date}</td>
+      <td><span class="badge ${issue.statusBadge}">${issue.statusLabel}</span></td>
+      <td>
+        <div class="progress-tracker" onclick="openProgress('${issue.id}')">
+          <div class="progress-track"><div class="progress-fill" style="width:${issue.progress}%"></div></div>
+          <div class="progress-text">${issue.progress}% — Click to view</div>
+        </div>
+      </td>
+      <td><a class="issue-link" onclick="openIssue('${issue.id}')">View →</a></td>
+    </tr>`).join('');
+}
+
+function filterTable(f, btn) {
+  document.querySelectorAll('.tbl-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable(f);
+}
+
+function openIssue(id) {
+  currentIssue = ISSUES.find(i => i.id === id) || ISSUES[0];
+  populateDetail();
+  showPage('detail');
+}
+
+function openProgress(id) {
+  currentIssue = ISSUES.find(i => i.id === id) || ISSUES[0];
+  populateProgress();
+  showPage('progress');
+}
+
+// ─────────────────────────────────────────
+// POPULATE DETAIL PAGE
+// ─────────────────────────────────────────
+function populateDetail() {
+  const i = currentIssue;
+  document.getElementById('detailBreadcrumb').textContent = i.id;
+  document.getElementById('d-id').textContent = i.id;
+  document.getElementById('d-title').textContent = i.title;
+  document.getElementById('d-loc').textContent = i.loc;
+  document.getElementById('d-date').textContent = i.date;
+  document.getElementById('d-ai').textContent = i.ai + ' · ' + i.aiConf + '% confidence';
+  document.getElementById('d-dept').textContent = i.dept;
+  document.getElementById('d-officer').textContent = i.officer;
+  document.getElementById('d-priority').textContent = i.priority;
+  document.getElementById('d-status').innerHTML = `<span class="badge ${i.statusBadge}">${i.statusLabel}</span>`;
+
+  // AI
+  document.getElementById('aiCategory').textContent = i.aiCat;
+  document.getElementById('aiConf').textContent = i.aiConf + '%';
+  document.getElementById('aiConfBar').style.width = i.aiConf + '%';
+  document.getElementById('aiDept').textContent = i.ai;
+  document.getElementById('aiSeverity').textContent = i.aiSeverity;
+  document.getElementById('aiEst').textContent = i.aiEst;
+  document.getElementById('aiVerify').textContent = i.aiVerify;
+
+  // Progress
+  document.getElementById('progressPct').textContent = i.progress + '%';
+  document.getElementById('progressBar').style.width = i.progress + '%';
+
+  // Pipeline strip
+  const steps = ['Filed','Auto-Assigned','GPS Field Update','AI Verification','Citizen Approval','Public Archive'];
+  const stepsShort = ['01','02','03','04','05','06'];
+  const subTags = ['Citizen','AI','Worker','AI','Citizen','Public'];
+  let pipeHTML = '';
+  steps.forEach((s, idx) => {
+    const tl = i.timeline[idx];
+    const cls = tl.done ? 'done' : (tl.current ? 'current' : 'pending');
+    pipeHTML += `<div class="pip-step ${cls}">
+      <div class="pip-num">${tl.done ? '✓' : stepsShort[idx]}</div>
+      <div class="pip-info">
+        <div class="pip-tag">${subTags[idx]}</div>
+        <div class="pip-name">${s}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('pipelineStrip').innerHTML = pipeHTML;
+
+  // Photos
+  const pg = document.getElementById('photoGrid');
+  pg.innerHTML = `
+    <div class="photo-box" onclick="openLightbox('before')">
+      <div class="photo-img photo-before-img" style="flex-direction:column;gap:8px">
+        <span style="font-size:48px">🕳️</span>
+        <span style="font-size:11px;color:#795548;font-weight:700">BEFORE REPAIR</span>
+      </div>
+      <div class="photo-overlay">🔍 View Full Photo</div>
+      <div class="photo-label-bar">
+        <span class="photo-type before">BEFORE</span>
+        <span class="photo-hint">Tap to enlarge</span>
+      </div>
+    </div>
+    ${i.photos.after ? `
+    <div class="photo-box" onclick="openLightbox('after')">
+      <div class="photo-img photo-after-img" style="flex-direction:column;gap:8px">
+        <span style="font-size:48px">✅</span>
+        <span style="font-size:11px;color:#2E7D32;font-weight:700">AFTER REPAIR</span>
+      </div>
+      <div class="photo-overlay">🔍 View Full Photo</div>
+      <div class="photo-label-bar">
+        <span class="photo-type after">AFTER</span>
+        <span class="photo-hint">Tap to enlarge</span>
+      </div>
+    </div>` : `
+    <div class="photo-box">
+      <div class="photo-pending">
+        <span style="font-size:36px">⏳</span>
+        <span style="font-weight:700">After Photo Pending</span>
+        <span style="font-size:11px">Uploaded by field worker after repair</span>
+      </div>
+      <div class="photo-label-bar">
+        <span class="photo-type" style="color:var(--gray-400)">AFTER (PENDING)</span>
+      </div>
+    </div>`}`;
+
+  // Timeline
+  const tl = document.getElementById('detailTimeline');
+  tl.innerHTML = i.timeline.map((t, idx) => `
+    <div class="tl-row">
+      <div class="tl-left">
+        <div class="tl-dot-outer ${t.done ? 'done' : t.current ? 'current' : ''}"></div>
+        ${idx < i.timeline.length-1 ? `<div class="tl-line ${t.done ? 'done' : ''}"></div>` : ''}
+      </div>
+      <div class="tl-right">
+        <div class="tl-step-name ${t.done ? 'done' : t.current ? 'current' : 'pending'}">${['01 Filed','02 Auto-Assigned','03 GPS Field Update','04 AI Verification','05 Citizen Approval','06 Public Archive'][idx]}</div>
+        <div class="tl-step-text">${t.txt}</div>
+        <div class="tl-step-time">${t.time}</div>
+      </div>
+    </div>`).join('');
+
+  // Map coords
+  document.getElementById('mapCoords').textContent = `${i.lat}°N, ${i.lng}°E`;
+  document.getElementById('mapAddr').textContent = i.loc;
+
+  // Rating state
+  const isResolved = i.status === 'resolved';
+  document.getElementById('ratingMsg').textContent = isResolved ? 'Click stars to rate this resolution:' : '⚠ Available after AI verification & resolution';
+}
+
+// ─────────────────────────────────────────
+// LEAFLET MAP
+// ─────────────────────────────────────────
+function initMap() {
+  const i = currentIssue;
+  if (map) {
+    map.setView([i.lat, i.lng], 15);
+    if (mapMarker) {
+      mapMarker.setLatLng([i.lat, i.lng]);
+      mapMarker.setPopupContent(`<b>${i.id}</b><br>${i.title}<br><small>${i.loc}</small>`);
+    }
+    return;
+  }
+  setTimeout(() => {
+    map = L.map('liveMap').setView([i.lat, i.lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19
+    }).addTo(map);
+    const icon = L.divIcon({
+      html: `<div style="background:var(--saffron);color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid white">📍</div>`,
+      iconSize:[32,32], iconAnchor:[16,32], className:''
+    });
+    mapMarker = L.marker([i.lat, i.lng], {icon})
+      .addTo(map)
+      .bindPopup(`<b>${i.id}</b><br>${i.title}<br><small>${i.loc}</small>`)
+      .openPopup();
+
+    // Add extra markers for nearby issues
+    ISSUES.filter(x => x.id !== i.id).forEach(x => {
+      const si = L.divIcon({
+        html: `<div style="background:#003366;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 2px 6px rgba(0,0,0,.3);border:2px solid white;opacity:.7">📌</div>`,
+        iconSize:[24,24], iconAnchor:[12,24], className:''
+      });
+      L.marker([x.lat, x.lng], {icon:si}).addTo(map).bindPopup(`<b>${x.id}</b><br>${x.title}`);
+    });
+  }, 100);
+}
+
+// ─────────────────────────────────────────
+// PROGRESS DETAIL
+// ─────────────────────────────────────────
+function populateProgress() {
+  const i = currentIssue;
+  document.getElementById('progressIssueId').textContent = `Issue: ${i.id} — ${i.title}`;
+  const steps = ['Filed','Auto-Assigned','GPS Field Update','AI Verification','Citizen Approval','Public Archive'];
+  const subTags = ['Citizen Action','AI Processing','Worker Field Update','AI Processing','Citizen Action','Public Record'];
+  const descs = [
+    'Citizen uploads geo-tagged photo. System extracts GPS coordinates. AI analyzes image to categorize issue type and severity.',
+    'AI engine matches issue to correct department and officer based on category, location and workload. Auto-notification sent.',
+    'Field worker checks in via GPS at exact location. Uploads before photo, performs repair, uploads after photo as evidence.',
+    'AI engine analyzes before/after photo pair. Confirms fix quality, checks completeness, generates verification report.',
+    'Citizen is notified to review the resolution. Rates satisfaction (1–5 stars). Feedback recorded permanently.',
+    'Issue outcome published to public archive. Success/failure stats updated. Full transparency for all citizens.'
+  ];
+  document.getElementById('bigPipeline').innerHTML = i.timeline.map((t, idx) => {
+    const cls = t.done ? 'done' : t.current ? 'current' : 'pending';
+    return `<div class="big-pip-step" onclick="${t.done||t.current ? `openIssue('${i.id}')` : 'void 0'}">
+      <div class="big-pip-left">
+        <div class="big-pip-circle ${cls}">${t.done ? '✓' : (idx+1)}</div>
+        ${idx < 5 ? `<div class="big-pip-vline ${t.done ? 'done' : ''}"></div>` : ''}
+      </div>
+      <div class="big-pip-right">
+        <div class="big-pip-step-num ${cls}">STEP ${idx+1} · ${subTags[idx]}</div>
+        <div class="big-pip-step-name ${t.done?'':''}${t.current?'':''} ${cls==='pending'?'pending':''}">${steps[idx]}</div>
+        <div class="big-pip-step-desc">${descs[idx]}</div>
+        <div class="big-pip-step-text" style="font-size:12px;color:${t.done?'var(--text)':t.current?'var(--saffron)':'var(--gray-400)'};margin-top:5px;line-height:1.5">${t.txt}</div>
+        <div class="big-pip-step-time">${t.time}</div>
+        ${t.done ? `<span class="big-pip-step-badge">✓ Completed</span>` : t.current ? `<span class="big-pip-step-badge current">⏳ In Progress</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────
+// LIGHTBOX
+// ─────────────────────────────────────────
+function openLightbox(type) {
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  lbTab(type);
+}
+
+function lbTab(type) {
+  document.querySelectorAll('.lb-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['before','after','compare'][i] === type);
+  });
+  const issue = currentIssue;
+  const content = document.getElementById('lbContent');
+  const meta = document.getElementById('lbMeta');
+  if (type === 'before') {
+    content.innerHTML = `<div class="lightbox-img lightbox-before" style="flex-direction:column;gap:12px"><span style="font-size:80px">🕳️</span><span style="font-size:14px;color:#795548;font-weight:700">BEFORE REPAIR — ${issue.id}</span></div>`;
+    meta.textContent = `📍 ${issue.loc} · Filed: ${issue.date} · Photo by: Citizen Reporter`;
+  } else if (type === 'after') {
+    if (!issue.photos.after) {
+      content.innerHTML = `<div class="lightbox-img" style="background:#1a1a2e;flex-direction:column;gap:10px"><span style="font-size:60px">⏳</span><span style="font-size:14px;color:rgba(255,255,255,0.6)">After photo not yet uploaded</span></div>`;
+      meta.textContent = 'Awaiting field worker to upload after-repair photo';
+    } else {
+      content.innerHTML = `<div class="lightbox-img lightbox-after" style="flex-direction:column;gap:12px"><span style="font-size:80px">✅</span><span style="font-size:14px;color:#2E7D32;font-weight:700">AFTER REPAIR — ${issue.id}</span></div>`;
+      meta.textContent = `📍 ${issue.loc} · Repaired: ${issue.date} · Photo by: Field Worker`;
+    }
+  } else {
+    content.innerHTML = `<div class="lightbox-compare">
+      <div>
+        <div class="lightbox-compare-img lightbox-before"><span style="font-size:60px">🕳️</span><div style="font-size:13px;color:#795548">Issue Reported</div></div>
+        <div class="lightbox-label" style="color:var(--red);text-align:center">◀ BEFORE</div>
+      </div>
+      <div>
+        ${issue.photos.after
+          ? `<div class="lightbox-compare-img lightbox-after"><span style="font-size:60px">✅</span><div style="font-size:13px;color:#2E7D32">Repair Complete</div></div>`
+          : `<div class="lightbox-compare-img" style="background:#1a1a2e;color:rgba(255,255,255,.5);font-size:13px"><span style="font-size:50px">⏳</span><div>After photo pending</div></div>`
+        }
+        <div class="lightbox-label" style="color:${issue.photos.after?'var(--green)':'rgba(255,255,255,0.4)'};text-align:center">AFTER ▶</div>
+      </div>
+    </div>`;
+    meta.textContent = `AI Verification: ${issue.aiVerify} · Confidence: ${issue.aiConf}%`;
+  }
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ─────────────────────────────────────────
+// RATING
+// ─────────────────────────────────────────
+function rate(n) {
+  if (currentIssue.status !== 'resolved') {
+    showToast('⚠ Rating only available after issue is resolved & AI-verified', 'var(--red)');
+    return;
+  }
+  document.querySelectorAll('.star-btn').forEach((s, i) => s.classList.toggle('filled', i < n));
+  document.getElementById('ratingMsg').textContent = `✓ You selected ${n} star${n>1?'s':''}`;
+}
+
+function submitRating() {
+  const filled = document.querySelectorAll('.star-btn.filled').length;
+  if (filled === 0) { showToast('Please select a star rating first', 'var(--red)'); return; }
+  showToast(`✓ Your ${filled}★ rating has been submitted. Thank you!`);
+}
+
+// ─────────────────────────────────────────
+// TRACK / LODGE / ESCALATE
+// ─────────────────────────────────────────
+function trackIssue() {
+  const val = document.getElementById('trackId').value.trim().toUpperCase();
+  const found = ISSUES.find(i => i.id === val);
+  if (found) { openIssue(found.id); }
+  else { showToast('Issue not found. Please check the registration number.', 'var(--red)'); }
+}
+
+function trackFromStatus() {
+  const val = document.getElementById('statusInput').value.trim().toUpperCase();
+  const found = ISSUES.find(i => i.id === val);
+  if (found) { openIssue(found.id); }
+  else { showToast('Issue not found. Try: CIV-2025-1142', 'var(--red)'); }
+}
+
+let lodgeUploaded = false;
+function simulateLodgeUpload() {
+  document.getElementById('uploadIconL').textContent = '✅';
+  document.getElementById('uploadTextL').textContent = 'IMG_20250308.jpg — GPS detected (28.6139°N, 77.2090°E)';
+  setTimeout(() => {
+    const d = document.getElementById('aiDetectL');
+    d.style.display = 'flex';
+  }, 500);
+  lodgeUploaded = true;
+}
+
+function submitLodge() {
+  const title = document.getElementById('lodgeTitle').value.trim();
+  if (!title) { showToast('Please enter an issue title', 'var(--red)'); return; }
+  const newId = 'CIV-2025-' + (1150 + Math.floor(Math.random()*50));
+  const newIssue = {
+    id: newId, title: title,
+    cat: document.getElementById('lodgeCat').value || '📋 Other',
+    dept: 'Pending Assignment', officer: 'To be assigned',
+    priority: 'Normal', date: '08 Mar 2025',
+    status: 'filed', statusLabel: 'FILED', statusBadge: 'badge-filed',
+    ai: 'Auto-detecting', aiConf: 0, aiCat: 'Processing…',
+    aiSeverity: '—', aiEst: '—', aiVerify: '—',
+    loc: `${document.getElementById('lodgeLat').value}°N, ${document.getElementById('lodgeLng').value}°E`,
+    lat: parseFloat(document.getElementById('lodgeLat').value),
+    lng: parseFloat(document.getElementById('lodgeLng').value),
+    progress: 5, photos: {before: lodgeUploaded, after: false},
+    desc: 'Newly filed issue.',
+    timeline: [
+      {s:'Filed', txt:'Issue filed by citizen. AI categorization in progress.', time:'08 Mar 2025', done:true},
+      {s:'Auto-Assigned', txt:'Pending AI routing.', time:'—', done:false, current:true},
+      {s:'GPS Field Update', txt:'—', time:'—', done:false},
+      {s:'AI Verification', txt:'—', time:'—', done:false},
+      {s:'Citizen Approval', txt:'—', time:'—', done:false},
+      {s:'Public Archive', txt:'—', time:'—', done:false},
+    ]
+  };
+  ISSUES.unshift(newIssue);
+  renderTable('all');
+  renderArchive();
+  showToast(`✓ Issue lodged successfully! Registration No: ${newId}`);
+  setTimeout(() => { openIssue(newId); }, 1200);
+}
+
+function escalate() {
+  showToast('⚠ Issue escalated to senior nodal officer. You will receive an update within 24 hours.');
+}
+
+// ─────────────────────────────────────────
+// ARCHIVE
+// ─────────────────────────────────────────
+function renderArchive() {
+  const stars = n => '★'.repeat(n) + '☆'.repeat(5-n);
+  document.getElementById('archiveBody').innerHTML = ARCHIVE.map(r => `
+    <tr>
+      <td style="font-family:'Courier Prime',monospace;font-size:11px;color:var(--gray-600)">${r.id}</td>
+      <td>${r.desc}</td>
+      <td>${r.cat}</td>
+      <td>${r.dept}</td>
+      <td style="text-align:center;font-weight:700">${r.days}d</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:5px">
+          <div style="width:50px;height:4px;background:var(--gray-200);border-radius:3px;overflow:hidden">
+            <div style="width:${r.conf}%;height:100%;background:linear-gradient(to right,#9C27B0,#6A1B9A)"></div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:#6A1B9A">${r.conf}%</span>
+        </div>
+      </td>
+      <td style="color:#F5A623;letter-spacing:-1px">${stars(r.rating)}</td>
+      <td><span class="badge ${r.outcome==='resolved'?'badge-resolved':'badge-escalated'}">${r.outcome.toUpperCase()}</span></td>
+    </tr>`).join('');
+}
+
+// ─────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || 'var(--green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ─────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────
+renderTable('all');
+renderArchive();
+populateDetail();
+populateProgress();
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeLightbox();
+});
+document.getElementById('lightbox').addEventListener('click', function(e) {
+  if (e.target === this) closeLightbox();
+});
+</script>
+</body>
+</html>
