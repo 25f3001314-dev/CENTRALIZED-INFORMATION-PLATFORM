@@ -1847,10 +1847,39 @@ function simulateLodgeUpload() {
   lodgeUploaded = true;
 }
 
-function submitLodge() {
+async function submitLodge() {
   const title = document.getElementById('lodgeTitle').value.trim();
   if (!title) { showToast('Please enter an issue title', 'var(--red)'); return; }
-  const newId = 'CIV-2025-' + (1150 + Math.floor(Math.random()*50));
+  const payload = {
+    title,
+    cat: document.getElementById('lodgeCat').value || 'Other',
+    lat: parseFloat(document.getElementById('lodgeLat').value),
+    lng: parseFloat(document.getElementById('lodgeLng').value),
+    desc: 'Newly filed issue.',
+    loc: `${document.getElementById('lodgeLat').value}°N, ${document.getElementById('lodgeLng').value}°E`
+  };
+
+  try {
+    const res = await fetch('/api/issues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Backend rejected request');
+    const data = await res.json();
+    if (!data || data.status !== 'success' || !data.data) throw new Error('Invalid backend response');
+
+    ISSUES.unshift(data.data);
+    renderTable('all');
+    renderArchive();
+    showToast(`✓ Issue lodged successfully! Registration No: ${data.data.id}`);
+    setTimeout(() => { openIssue(data.data.id); }, 1200);
+    return;
+  } catch (_) {
+    // Fallback to local demo mode if API is unavailable.
+  }
+
+  const newId = 'CIV-2025-' + (1150 + Math.floor(Math.random() * 50));
   const newIssue = {
     id: newId, title: title,
     cat: document.getElementById('lodgeCat').value || '📋 Other',
@@ -2071,15 +2100,26 @@ function initCharts() {
         renderTable();
         renderArchive();
         if (badge) { badge.textContent = '🟢 Live Backend Connected'; badge.className = 'backend-badge live'; }
-        // Refresh analytics stats if available
-        return fetch('/api/analytics/dashboard');
+        // Refresh archive and analytics stats if available
+        return Promise.all([
+          fetch('/api/archive').then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch('/api/analytics/dashboard').then(r => r.ok ? r.json() : null).catch(() => null)
+        ]);
       }
       return Promise.reject(new Error('no data'));
     })
-    .then(res => res && res.ok ? res.json() : Promise.reject(new Error('no analytics')))
-    .then(data => {
-      if (data && data.data) {
-        const d = data.data;
+    .then(results => {
+      const archiveResponse = results ? results[0] : null;
+      const analyticsResponse = results ? results[1] : null;
+
+      if (archiveResponse && archiveResponse.status === 'success' && Array.isArray(archiveResponse.data)) {
+        ARCHIVE.length = 0;
+        archiveResponse.data.forEach(row => ARCHIVE.push(row));
+        renderArchive();
+      }
+
+      if (analyticsResponse && analyticsResponse.data) {
+        const d = analyticsResponse.data;
         const el = id => document.getElementById(id);
         if (el('statTotal') && d.total_issues !== undefined) el('statTotal').textContent = d.total_issues.toLocaleString();
         if (el('statActive') && d.active_cases !== undefined) el('statActive').textContent = d.active_cases.toLocaleString();

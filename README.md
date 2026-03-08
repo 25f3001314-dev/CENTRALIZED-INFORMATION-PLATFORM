@@ -217,7 +217,8 @@ flowchart TD
 ### Prerequisites
 
 - A modern web browser (Chrome, Firefox, Edge, Safari)
-- No additional installation required — runs as a static web application
+- R (>= 4.2 recommended)
+- R packages: `plumber`, `jsonlite`
 
 ### Quick Start
 
@@ -227,16 +228,60 @@ flowchart TD
    cd CENTRALIZED-INFORMATION-PLATFORM
    ```
 
-2. **Open the application**
+2. **Install backend dependencies**
+    ```r
+    install.packages(c("plumber", "jsonlite"))
+    ```
+
+3. **Start the R backend**
+    ```bash
+    Rscript backend/run.R
+    ```
+
+4. **Open the application**
    ```bash
-   # Simply open the HTML file in your browser
-   open civicpulse-portal.html
-   # OR
-   # Use a local server for best experience
-   npx serve .
+    # Visit in your browser
+    http://localhost:8000
    ```
 
-3. **Explore the portal** — Navigate through the CivicPulse dashboard to explore all features.
+5. **Explore the portal** — Navigate through the CivicPulse dashboard to explore all features.
+
+### Backend API (R / Plumber)
+
+- `GET /api/health` — health check
+- `GET /api/issues` — list issues
+- `GET /api/issues/:id` — single issue
+- `POST /api/issues` — create issue
+- `GET /api/archive` — archive rows
+- `GET /api/analytics/dashboard` — dashboard summary
+
+### Astral API Automation
+
+Configure Astral securely with environment variables (do not hardcode API keys):
+
+```bash
+# One-time setup
+cp .env.example .env
+
+# Set real values in .env, then load them
+set -a
+source .env
+set +a
+
+Rscript backend/run.R
+```
+
+Automation endpoints:
+
+- `GET /api/automation/status` — Astral configuration and job count
+- `POST /api/automation/scan` — OCR/scan workflow (`image_url` or `text`)
+- `POST /api/automation/monitor` — joined monitor + scan pipeline (issue-level)
+- `GET /api/automation/jobs` — list automation jobs
+- `GET /api/automation/jobs/:id` — fetch one automation job
+
+Safety note:
+
+- People-tracking/surveillance workflows are intentionally not supported.
 
 ---
 
@@ -245,6 +290,7 @@ flowchart TD
 | Layer | Technologies |
 |-------|-------------|
 | **Frontend** | HTML5, CSS3, JavaScript |
+| **Backend** | R, Plumber |
 | **AI/NLP** | Natural Language Processing for task categorization |
 | **Blockchain** | Proof-of-Work verification layer |
 | **APIs** | CPGRAMS API, SMS Gateway, WhatsApp Business API |
