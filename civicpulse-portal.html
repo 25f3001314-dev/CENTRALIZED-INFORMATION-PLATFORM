@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
   --saffron: #FF6200;
@@ -639,6 +640,32 @@ footer { background: var(--navy-dark); color: rgba(255,255,255,0.6); margin-top:
   transform: translateY(80px); opacity: 0; transition: all .3s;
 }
 .toast.show { transform: translateY(0); opacity: 1; }
+
+/* CHART CARDS */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.chart-card { background: var(--white); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; box-shadow: var(--shadow); }
+.chart-card-head { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--navy-dark); background: var(--gray-50); }
+.chart-card-body { padding: 16px; position: relative; height: 240px; }
+.chart-card-body-lg { padding: 16px; position: relative; height: 200px; }
+.chart-full { grid-column: 1 / -1; }
+@media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } .chart-full { grid-column: 1; } }
+
+/* HOME SEARCH BAR */
+.home-search-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.home-search-bar input { flex: 1; min-width: 180px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; font-family: 'Source Sans 3', sans-serif; outline: none; }
+.home-search-bar input:focus { border-color: var(--navy); box-shadow: 0 0 0 2px rgba(0,51,102,.1); }
+.home-search-bar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; font-family: 'Source Sans 3', sans-serif; background: var(--white); outline: none; cursor: pointer; }
+.home-search-bar .search-clear { padding: 8px 14px; background: var(--gray-100); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; cursor: pointer; color: var(--gray-600); font-family: 'Source Sans 3', sans-serif; }
+
+/* GPS DETECT BUTTON */
+.btn-gps { background: var(--navy-light); color: var(--navy-dark); border: 1px solid var(--border); padding: 8px 14px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Source Sans 3', sans-serif; transition: background .2s; display: inline-flex; align-items: center; gap: 5px; }
+.btn-gps:hover { background: var(--navy); color: var(--white); }
+.gps-status { font-size: 11px; color: var(--gray-600); margin-top: 5px; min-height: 16px; }
+
+/* BACKEND STATUS BADGE */
+.backend-badge { position: fixed; bottom: 20px; left: 20px; z-index: 999; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; opacity: 0; transition: opacity .5s; pointer-events: none; }
+.backend-badge.live { background: var(--green-light); color: var(--green); border: 1px solid var(--green); opacity: 1; }
+.backend-badge.demo { background: var(--saffron-light); color: var(--amber); border: 1px solid #ffd4b0; opacity: 1; }
 </style>
 </head>
 <body>
@@ -787,6 +814,18 @@ footer { background: var(--navy-dark); color: rgba(255,255,255,0.6); margin-top:
           <button class="tbl-filter" onclick="filterTable('progress',this)">In Progress</button>
           <button class="tbl-filter" onclick="filterTable('resolved',this)">Resolved</button>
         </div>
+      </div>
+      <div class="home-search-bar">
+        <input type="text" id="issueSearch" placeholder="🔍 Search by title, ID, location…" oninput="renderTable()">
+        <select id="catFilter" onchange="renderTable()">
+          <option value="">All Categories</option>
+          <option value="Roads">🚧 Roads</option>
+          <option value="Water">💧 Water</option>
+          <option value="Electrical">💡 Electrical</option>
+          <option value="Sanitation">🗑️ Sanitation</option>
+          <option value="Parks">🌳 Parks</option>
+        </select>
+        <button class="search-clear" onclick="clearSearch()">✕ Clear</button>
       </div>
       <table>
         <thead>
@@ -1039,6 +1078,10 @@ footer { background: var(--navy-dark); color: rgba(255,255,255,0.6); margin-top:
         </div>
 
         <div class="form-section-title">📍 Location Details</div>
+        <div style="margin-bottom:10px">
+          <button type="button" class="btn-gps" onclick="detectGPS()">📡 Auto-Detect GPS Location</button>
+          <div class="gps-status" id="gpsStatus"></div>
+        </div>
         <div class="form-grid-2">
           <div class="form-row">
             <label class="form-label">Latitude (auto-detected)</label>
@@ -1167,23 +1210,45 @@ footer { background: var(--navy-dark); color: rgba(255,255,255,0.6); margin-top:
   </div>
   <div class="main-content">
     <div class="stats-grid">
-      <div class="stat-widget saffron"><div class="stat-num saffron">2,847</div><div class="stat-label">Total Filed</div><div class="stat-delta delta-up">↑ 143 this month</div></div>
-      <div class="stat-widget blue"><div class="stat-num blue">201</div><div class="stat-label">Active Cases</div><div class="stat-delta delta-up">↑ 12 today</div></div>
-      <div class="stat-widget green"><div class="stat-num green">2,596</div><div class="stat-label">Resolved</div><div class="stat-delta delta-up">91.2% rate</div></div>
-      <div class="stat-widget red"><div class="stat-num red">50</div><div class="stat-label">Escalated</div><div class="stat-delta delta-dn">1.8% rate</div></div>
+      <div class="stat-widget saffron"><div class="stat-num saffron" id="statTotal">2,847</div><div class="stat-label">Total Filed</div><div class="stat-delta delta-up">↑ 143 this month</div></div>
+      <div class="stat-widget blue"><div class="stat-num blue" id="statActive">201</div><div class="stat-label">Active Cases</div><div class="stat-delta delta-up">↑ 12 today</div></div>
+      <div class="stat-widget green"><div class="stat-num green" id="statResolved">2,596</div><div class="stat-label">Resolved</div><div class="stat-delta delta-up" id="statResolveRate">91.2% rate</div></div>
+      <div class="stat-widget red"><div class="stat-num red" id="statEscalated">50</div><div class="stat-label">Escalated</div><div class="stat-delta delta-dn">1.8% rate</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <!-- CHARTS ROW 1 -->
+    <div class="chart-grid">
+      <div class="chart-card chart-full">
+        <div class="chart-card-head">📈 Monthly Issue Trends (Last 12 Months)</div>
+        <div class="chart-card-body-lg"><canvas id="chartTrend"></canvas></div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 2 -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-card-head">🥧 Issues by Category</div>
+        <div class="chart-card-body"><canvas id="chartCategory"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-head">🏆 Department Resolution Rate (%)</div>
+        <div class="chart-card-body"><canvas id="chartDept"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TABLES ROW -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
       <div class="detail-card">
         <div class="detail-card-head">📊 Department Performance</div>
         <div class="detail-card-body">
           <table style="width:100%">
             <thead><tr><th>Department</th><th>Issues</th><th>Resolved</th><th>Avg Days</th></tr></thead>
             <tbody>
-              <tr><td>Roads & Infra</td><td>924</td><td><span class="badge badge-resolved">93%</span></td><td>3.2d</td></tr>
-              <tr><td>Water & Drainage</td><td>701</td><td><span class="badge badge-resolved">89%</span></td><td>4.8d</td></tr>
+              <tr><td>Roads &amp; Infra</td><td>924</td><td><span class="badge badge-resolved">93%</span></td><td>3.2d</td></tr>
+              <tr><td>Water &amp; Drainage</td><td>701</td><td><span class="badge badge-resolved">89%</span></td><td>4.8d</td></tr>
               <tr><td>Sanitation</td><td>558</td><td><span class="badge badge-resolved">94%</span></td><td>2.1d</td></tr>
               <tr><td>Electrical Dept</td><td>402</td><td><span class="badge badge-resolved">97%</span></td><td>1.9d</td></tr>
-              <tr><td>Parks & Gardens</td><td>262</td><td><span class="badge badge-progress">82%</span></td><td>6.4d</td></tr>
+              <tr><td>Parks &amp; Gardens</td><td>262</td><td><span class="badge badge-progress">82%</span></td><td>6.4d</td></tr>
             </tbody>
           </table>
         </div>
@@ -1306,6 +1371,9 @@ footer { background: var(--navy-dark); color: rgba(255,255,255,0.6); margin-top:
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- BACKEND STATUS BADGE -->
+<div class="backend-badge" id="backendBadge"></div>
 
 <script>
 // ─────────────────────────────────────────
@@ -1430,20 +1498,33 @@ function showPage(name) {
   if (nl) nl.classList.add('active');
   window.scrollTo(0, 0);
   if (name === 'detail') initMap();
+  if (name === 'stats') setTimeout(initCharts, 50);
 }
 
 // ─────────────────────────────────────────
 // RENDER HOME TABLE
 // ─────────────────────────────────────────
+let activeStatusFilter = 'all';
+
 function renderTable(filter) {
+  if (filter !== undefined) activeStatusFilter = filter;
+  const searchVal = (document.getElementById('issueSearch') ? document.getElementById('issueSearch').value : '').toLowerCase().trim();
+  const catVal = (document.getElementById('catFilter') ? document.getElementById('catFilter').value : '').toLowerCase();
   const tbody = document.getElementById('issueTableBody');
-  const filtered = filter === 'all' ? ISSUES : ISSUES.filter(i => {
-    if (filter === 'filed') return i.status === 'filed';
-    if (filter === 'progress') return i.status === 'progress' || i.status === 'assigned' || i.status === 'verify';
-    if (filter === 'resolved') return i.status === 'resolved';
-    return true;
+  const filtered = ISSUES.filter(i => {
+    const matchStatus = activeStatusFilter === 'all' ? true :
+      activeStatusFilter === 'filed' ? i.status === 'filed' :
+      activeStatusFilter === 'progress' ? (i.status === 'progress' || i.status === 'assigned' || i.status === 'verify') :
+      activeStatusFilter === 'resolved' ? i.status === 'resolved' : true;
+    const matchSearch = !searchVal ||
+      i.id.toLowerCase().includes(searchVal) ||
+      i.title.toLowerCase().includes(searchVal) ||
+      (i.loc && i.loc.toLowerCase().includes(searchVal)) ||
+      (i.dept && i.dept.toLowerCase().includes(searchVal));
+    const matchCat = !catVal || i.cat.toLowerCase().includes(catVal);
+    return matchStatus && matchSearch && matchCat;
   });
-  tbody.innerHTML = filtered.map(issue => `
+  tbody.innerHTML = filtered.length ? filtered.map(issue => `
     <tr>
       <td><a class="issue-link" onclick="openIssue('${issue.id}')">${issue.id}</a></td>
       <td><a class="issue-link" onclick="openIssue('${issue.id}')">${issue.title}</a></td>
@@ -1458,13 +1539,22 @@ function renderTable(filter) {
         </div>
       </td>
       <td><a class="issue-link" onclick="openIssue('${issue.id}')">View →</a></td>
-    </tr>`).join('');
+    </tr>`).join('') :
+    `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px">No issues match your search criteria.</td></tr>`;
 }
 
 function filterTable(f, btn) {
   document.querySelectorAll('.tbl-filter').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderTable(f);
+}
+
+function clearSearch() {
+  const s = document.getElementById('issueSearch');
+  const c = document.getElementById('catFilter');
+  if (s) s.value = '';
+  if (c) c.value = '';
+  renderTable();
 }
 
 function openIssue(id) {
@@ -1829,6 +1919,179 @@ function showToast(msg, color) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3500);
 }
+
+// ─────────────────────────────────────────
+// GPS DETECTION
+// ─────────────────────────────────────────
+function detectGPS() {
+  const statusEl = document.getElementById('gpsStatus');
+  if (!navigator.geolocation) {
+    statusEl.textContent = '⚠ Geolocation not supported in this browser.';
+    statusEl.style.color = 'var(--red)';
+    return;
+  }
+  statusEl.textContent = '📡 Detecting location…';
+  statusEl.style.color = 'var(--gray-600)';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const rawLat = pos.coords.latitude;
+      const rawLng = pos.coords.longitude;
+      document.getElementById('lodgeLat').value = rawLat.toFixed(6);
+      document.getElementById('lodgeLng').value = rawLng.toFixed(6);
+      const latDir = rawLat >= 0 ? 'N' : 'S';
+      const lngDir = rawLng >= 0 ? 'E' : 'W';
+      statusEl.textContent = `✓ GPS detected: ${Math.abs(rawLat).toFixed(6)}°${latDir}, ${Math.abs(rawLng).toFixed(6)}°${lngDir} (accuracy ±${Math.round(pos.coords.accuracy)}m)`;
+      statusEl.style.color = 'var(--green)';
+    },
+    err => {
+      statusEl.textContent = `⚠ Could not detect location: ${err.message}`;
+      statusEl.style.color = 'var(--red)';
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+// ─────────────────────────────────────────
+// ANALYTICS CHARTS
+// ─────────────────────────────────────────
+let chartsInitialized = false;
+
+function initCharts() {
+  if (chartsInitialized) return;
+  chartsInitialized = true;
+
+  const rootStyles = getComputedStyle(document.documentElement);
+  const saffron = '#FF6200';
+  const navy = '#003366';
+  const green = '#128807';
+  const red = '#C0392B';
+  const blue = '#1565C0';
+
+  // Monthly Trend Chart
+  const trendCtx = document.getElementById('chartTrend');
+  if (trendCtx) {
+    new Chart(trendCtx, {
+      type: 'line',
+      data: {
+        labels: ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'],
+        datasets: [
+          {
+            label: 'Issues Filed',
+            data: [185,210,198,245,267,231,288,312,295,278,301,337],
+            borderColor: saffron,
+            backgroundColor: 'rgba(255,98,0,0.08)',
+            tension: 0.4, fill: true, pointRadius: 4, pointBackgroundColor: saffron
+          },
+          {
+            label: 'Issues Resolved',
+            data: [172,196,185,228,249,215,271,294,280,262,285,319],
+            borderColor: green,
+            backgroundColor: 'rgba(18,136,7,0.06)',
+            tension: 0.4, fill: true, pointRadius: 4, pointBackgroundColor: green
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 12 } } },
+        scales: {
+          y: { beginAtZero: false, min: 100, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } },
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  }
+
+  // Category Donut Chart
+  const catCtx = document.getElementById('chartCategory');
+  if (catCtx) {
+    new Chart(catCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Roads & Infra', 'Water & Drainage', 'Sanitation', 'Electrical', 'Parks & Gardens', 'Infrastructure'],
+        datasets: [{
+          data: [924, 701, 558, 402, 262, 0],
+          backgroundColor: [saffron, blue, green, '#F5A623', '#4CAF50', '#007A7A'],
+          borderWidth: 2, borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} issues` } }
+        },
+        cutout: '62%'
+      }
+    });
+  }
+
+  // Department Resolution Rate Bar Chart
+  const deptCtx = document.getElementById('chartDept');
+  if (deptCtx) {
+    new Chart(deptCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Roads', 'Water', 'Sanitation', 'Electrical', 'Parks'],
+        datasets: [{
+          label: 'Resolve Rate (%)',
+          data: [93, 89, 94, 97, 82],
+          backgroundColor: [saffron, blue, green, '#F5A623', '#4CAF50'],
+          borderRadius: 4, borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+          y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  }
+}
+
+// ─────────────────────────────────────────
+// BACKEND API INTEGRATION
+// ─────────────────────────────────────────
+(function detectBackend() {
+  const badge = document.getElementById('backendBadge');
+  const healthFetch = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), 3000);
+    fetch('/api/health').then(res => { clearTimeout(timer); resolve(res); }).catch(err => { clearTimeout(timer); reject(err); });
+  });
+  healthFetch
+    .then(res => res.ok ? fetch('/api/issues') : Promise.reject(new Error('health check failed')))
+    .then(res => res.json())
+    .then(response => {
+      if (response.status === 'success' && Array.isArray(response.data) && response.data.length) {
+        ISSUES.length = 0;
+        response.data.forEach(issue => ISSUES.push(issue));
+        renderTable();
+        renderArchive();
+        if (badge) { badge.textContent = '🟢 Live Backend Connected'; badge.className = 'backend-badge live'; }
+        // Refresh analytics stats if available
+        return fetch('/api/analytics/dashboard');
+      }
+      return Promise.reject(new Error('no data'));
+    })
+    .then(res => res && res.ok ? res.json() : Promise.reject(new Error('no analytics')))
+    .then(data => {
+      if (data && data.data) {
+        const d = data.data;
+        const el = id => document.getElementById(id);
+        if (el('statTotal') && d.total_issues !== undefined) el('statTotal').textContent = d.total_issues.toLocaleString();
+        if (el('statActive') && d.active_cases !== undefined) el('statActive').textContent = d.active_cases.toLocaleString();
+        if (el('statResolved') && d.resolved !== undefined) el('statResolved').textContent = d.resolved.toLocaleString();
+        if (el('statEscalated') && d.escalated !== undefined) el('statEscalated').textContent = d.escalated.toLocaleString();
+        if (el('statResolveRate') && d.resolve_rate !== undefined) el('statResolveRate').textContent = d.resolve_rate + '% rate';
+      }
+    })
+    .catch(() => {
+      if (badge) { badge.textContent = '🟡 Demo Mode (No Backend)'; badge.className = 'backend-badge demo'; }
+    });
+})();
 
 // ─────────────────────────────────────────
 // INIT
